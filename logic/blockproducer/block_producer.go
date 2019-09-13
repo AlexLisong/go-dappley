@@ -2,8 +2,9 @@ package blockproducer
 
 import (
 	"encoding/hex"
-	"github.com/dappley/go-dappley/common/deadline"
 	"time"
+
+	"github.com/dappley/go-dappley/common/deadline"
 
 	"github.com/dappley/go-dappley/core/blockchain"
 	"github.com/dappley/go-dappley/logic/lblock"
@@ -150,7 +151,7 @@ func (bp *BlockProducer) collectTransactions(utxoIndex *lutxo.UTXOIndex, parentB
 				}).Warn("BlockProducer: cannot find vin while executing smart contract")
 				return nil, nil
 			}
-			isSCUTXO := (*utxoIndex).GetAllUTXOsByPubKeyHash([]byte(ctx.Vout[0].PubKeyHash)).Size() == 0
+			isSCUTXO := (*utxoIndex).GetAllUTXOsByPubKeyHash([]byte(ctx.Vout[0].Account.GetPubKeyHash())).Size() == 0
 
 			validTxs = append(validTxs, txNode.Value)
 			utxoIndex.UpdateUtxo(txNode.Value)
@@ -227,7 +228,7 @@ func (bp *BlockProducer) executeSmartContract(utxoIndex *lutxo.UTXOIndex,
 			}).Warn("BlockProducer: cannot find vin while executing smart contract")
 			return nil, nil
 		}
-		isSCUTXO := (*utxoIndex).GetAllUTXOsByPubKeyHash([]byte(ctx.Vout[0].PubKeyHash)).Size() == 0
+		isSCUTXO := (*utxoIndex).GetAllUTXOsByPubKeyHash([]byte(ctx.Vout[0].Account.GetPubKeyHash())).Size() == 0
 		gasCount, newTxs, err := ltransaction.Execute(ctx, prevUtxos, isSCUTXO, *utxoIndex, scStorage, rewards, engine, currBlkHeight, parentBlk)
 		generatedTXs = append(generatedTXs, newTxs...)
 		// record gas used

@@ -27,8 +27,8 @@ import (
 	"github.com/dappley/go-dappley/core/transaction"
 	transactionpb "github.com/dappley/go-dappley/core/transaction/pb"
 	"github.com/dappley/go-dappley/logic/ltransaction"
-	transactionPoolpb "github.com/dappley/go-dappley/logic/transactionpool/pb"
 	"github.com/dappley/go-dappley/logic/lutxo"
+	transactionPoolpb "github.com/dappley/go-dappley/logic/transactionpool/pb"
 
 	"github.com/asaskevich/EventBus"
 	"github.com/dappley/go-dappley/common/pubsub"

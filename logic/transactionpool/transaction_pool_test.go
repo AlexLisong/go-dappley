@@ -48,8 +48,8 @@ func GenerateFakeTxInputs() []transactionbase.TXInput {
 
 func GenerateFakeTxOutputs() []transactionbase.TXOutput {
 	return []transactionbase.TXOutput{
-		{common.NewAmount(1), account.PubKeyHash(getAoB(2)), ""},
-		{common.NewAmount(2), account.PubKeyHash(getAoB(2)), ""},
+		{common.NewAmount(1), account.NewContractAccountByPubKeyHash(account.PubKeyHash(getAoB(2))), ""},
+		{common.NewAmount(2), account.NewContractAccountByPubKeyHash(account.PubKeyHash(getAoB(2))), ""},
 	}
 }
 
@@ -250,7 +250,7 @@ func TestTransactionPool_GetTransactions(t *testing.T) {
 			{tx1.ID, 1, nil, pubkey1},
 		},
 		Vout: []transactionbase.TXOutput{
-			{common.NewAmount(5), contractAccount.GetPubKeyHash(), "dapp_schedule"},
+			{common.NewAmount(5), contractAccount, "dapp_schedule"},
 		},
 		Tip:      common.NewAmount(1),
 		GasLimit: common.NewAmount(0),
@@ -262,7 +262,7 @@ func TestTransactionPool_GetTransactions(t *testing.T) {
 		ID:  nil,
 		Vin: GenerateFakeTxInputs(),
 		Vout: []transactionbase.TXOutput{
-			{common.NewAmount(5), contractAccount.GetPubKeyHash(), "execution"},
+			{common.NewAmount(5), contractAccount, "execution"},
 		},
 		Tip:      common.NewAmount(2),
 		GasLimit: common.NewAmount(0),

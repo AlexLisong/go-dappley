@@ -113,7 +113,7 @@ func DescribeTransaction(utxoIndex *lutxo.UTXOIndex, tx *transaction.Transaction
 		}
 	}
 	for _, vout := range tx.Vout {
-		if bytes.Compare([]byte(vout.PubKeyHash), vinPubKey) == 0 {
+		if bytes.Compare([]byte(vout.Account.GetPubKeyHash()), vinPubKey) == 0 {
 			outputAmount = outputAmount.Add(vout.Value)
 		} else {
 			receiverAddress = vout.GetAddress()
@@ -229,7 +229,7 @@ func Execute(ctx *transaction.ContractTx, prevUtxos []*utxo.UTXO,
 		"arguments":        totalArgs,
 	}).Debug("Transaction: is executing the smart contract...")
 
-	createContractUtxo, invokeUtxos := index.SplitContractUtxo([]byte(vout.PubKeyHash))
+	createContractUtxo, invokeUtxos := index.SplitContractUtxo([]byte(vout.Account.GetPubKeyHash()))
 	if err := engine.SetExecutionLimits(ctx.GasLimit.Uint64(), 0); err != nil {
 		return 0, nil, ErrInvalidGasLimit
 	}
@@ -289,7 +289,7 @@ func prepareFuncCallScript(function, args string) string {
 
 func isPubkeyInUtxos(contractUtxos []*utxo.UTXO, pubKey account.PubKeyHash) bool {
 	for _, contractUtxo := range contractUtxos {
-		if bytes.Compare(contractUtxo.PubKeyHash, pubKey) == 0 {
+		if bytes.Compare(contractUtxo.Account.GetPubKeyHash(), pubKey) == 0 {
 			return true
 		}
 	}

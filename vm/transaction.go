@@ -76,7 +76,7 @@ func TransactionGetFunc(address unsafe.Pointer, context unsafe.Pointer) {
 		vout.amount = C.CString(txVout.Value.String())
 		defer C.free(unsafe.Pointer(vout.amount))
 
-		vout.pubkeyhash = C.CString(hex.EncodeToString([]byte(txVout.PubKeyHash)))
+		vout.pubkeyhash = C.CString(hex.EncodeToString([]byte(txVout.Account.GetPubKeyHash())))
 		defer C.free(unsafe.Pointer(vout.pubkeyhash))
 	}
 	tx.vout = voutAddr

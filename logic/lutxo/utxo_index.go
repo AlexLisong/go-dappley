@@ -204,7 +204,7 @@ func (utxos *UTXOIndex) UndoTxsInBlock(blk *block.Block, db storage.Storage) err
 // excludeVoutsInTx removes the UTXOs generated in a transaction from the UTXOIndex.
 func (utxos *UTXOIndex) excludeVoutsInTx(tx *transaction.Transaction, db storage.Storage) error {
 	for i, vout := range tx.Vout {
-		err := utxos.removeUTXO(vout.PubKeyHash, tx.ID, i)
+		err := utxos.removeUTXO(vout.Account.GetPubKeyHash(), tx.ID, i)
 		if err != nil {
 			return err
 		}
@@ -236,28 +236,36 @@ func (utxos *UTXOIndex) unspendVinsInTx(tx *transaction.Transaction, db storage.
 
 // AddUTXO adds an unspent TXOutput to index
 func (utxos *UTXOIndex) AddUTXO(txout transactionbase.TXOutput, txid []byte, vout int) {
-	originalUtxos := utxos.GetAllUTXOsByPubKeyHash(txout.PubKeyHash)
-
+	hash := account.PubKeyHash{}
 	var u *utxo.UTXO
-	//if it is a smart contract deployment utxo add it to contract utxos
-	if isContract, _ := txout.PubKeyHash.IsContract(); isContract {
-		if originalUtxos.Size() == 0 {
-			u = utxo.NewUTXO(txout, txid, vout, utxo.UtxoCreateContract)
-			contractUtxos := utxos.GetAllUTXOsByPubKeyHash(contractUtxoKey)
-			utxos.mutex.Lock()
-			contractUtxos.PutUtxo(u)
-			utxos.index[hex.EncodeToString(contractUtxoKey)] = contractUtxos
-			utxos.mutex.Unlock()
+	var originalUtxos *utxo.UTXOTx
+	if txout.Account != nil {
+		hash = txout.Account.GetPubKeyHash()
+		originalUtxos = utxos.GetAllUTXOsByPubKeyHash(hash)
+
+		//if it is a smart contract deployment utxo add it to contract utxos
+		if isContract, _ := txout.Account.GetPubKeyHash().IsContract(); isContract {
+			if originalUtxos.Size() == 0 {
+				u = utxo.NewUTXO(txout, txid, vout, utxo.UtxoCreateContract)
+				contractUtxos := utxos.GetAllUTXOsByPubKeyHash(contractUtxoKey)
+				utxos.mutex.Lock()
+				contractUtxos.PutUtxo(u)
+				utxos.index[hex.EncodeToString(contractUtxoKey)] = contractUtxos
+				utxos.mutex.Unlock()
+			} else {
+				u = utxo.NewUTXO(txout, txid, vout, utxo.UtxoInvokeContract)
+			}
 		} else {
-			u = utxo.NewUTXO(txout, txid, vout, utxo.UtxoInvokeContract)
+			u = utxo.NewUTXO(txout, txid, vout, utxo.UtxoNormal)
 		}
 	} else {
+		originalUtxos = utxos.GetAllUTXOsByPubKeyHash(hash)
 		u = utxo.NewUTXO(txout, txid, vout, utxo.UtxoNormal)
 	}
 
 	utxos.mutex.Lock()
 	originalUtxos.PutUtxo(u)
-	utxos.index[txout.PubKeyHash.String()] = originalUtxos
+	utxos.index[hash.String()] = originalUtxos
 	utxos.mutex.Unlock()
 }
 

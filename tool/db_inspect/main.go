@@ -244,7 +244,7 @@ func block2PrettyPb(block *block.Block) proto.Message {
 			txVoutPbs = append(txVoutPbs,
 				&db_inspect_pb.TXOutput{
 					Value:         vout.Value.String(),
-					PublicKeyHash: vout.PubKeyHash.String(),
+					PublicKeyHash: vout.Account.GetPubKeyHash().String(),
 					Contract:      vout.Contract,
 				})
 		}
@@ -274,7 +274,7 @@ func dumpBlock(block *block.Block) {
 func utxo2PrettyPb(utxo *utxo.UTXO) proto.Message {
 	return &db_inspect_pb.Utxo{
 		Amount:        utxo.Value.String(),
-		PublicKeyHash: utxo.PubKeyHash.String(),
+		PublicKeyHash: utxo.Account.GetPubKeyHash().String(),
 		Txid:          hex.EncodeToString(utxo.Txid),
 		TxIndex:       uint32(utxo.TxIndex),
 	}

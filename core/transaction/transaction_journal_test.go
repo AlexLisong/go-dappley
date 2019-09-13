@@ -45,5 +45,5 @@ func TestJournalPutAndGet(t *testing.T) {
 	vout, err := GetTxOutput(vin, db)
 	// Expect transaction logs have been successfully saved
 	assert.Nil(t, err)
-	assert.Equal(t, vout.PubKeyHash, tx1.Vout[1].PubKeyHash)
+	assert.Equal(t, vout.Account.GetPubKeyHash(), tx1.Vout[1].Account.GetPubKeyHash())
 }

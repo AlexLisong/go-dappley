@@ -44,8 +44,8 @@ func GenerateFakeTxInputs() []transactionbase.TXInput {
 
 func GenerateFakeTxOutputs() []transactionbase.TXOutput {
 	return []transactionbase.TXOutput{
-		{common.NewAmount(1), account.PubKeyHash(getAoB(2)), ""},
-		{common.NewAmount(2), account.PubKeyHash(getAoB(2)), ""},
+		{common.NewAmount(1), account.NewContractAccountByPubKeyHash(account.PubKeyHash(getAoB(2))), ""},
+		{common.NewAmount(2), account.NewContractAccountByPubKeyHash(account.PubKeyHash(getAoB(2))), ""},
 	}
 }
 
@@ -144,7 +144,7 @@ func TestTransaction_GetContractAddress(t *testing.T) {
 				nil,
 				[]transactionbase.TXOutput{
 					{nil,
-						acc.GetPubKeyHash(),
+						acc,
 						"",
 					},
 				},
@@ -173,10 +173,10 @@ func TestTransaction_MatchRewards(t *testing.T) {
 				[]transactionbase.TXInput{{nil, -1, nil, RewardTxData}},
 				[]transactionbase.TXOutput{{
 					common.NewAmount(1),
-					account.PubKeyHash([]byte{
+					account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 						0x5a, 0xc9, 0x85, 0x37, 0x92, 0x37, 0x76, 0x80,
 						0xb1, 0x31, 0xa1, 0xab, 0xb, 0x5b, 0xa6, 0x49,
-						0xe5, 0x27, 0xf0, 0x42, 0x5d}),
+						0xe5, 0x27, 0xf0, 0x42, 0x5d})),
 					"",
 				}},
 				common.NewAmount(0),
@@ -206,10 +206,10 @@ func TestTransaction_MatchRewards(t *testing.T) {
 				[]transactionbase.TXInput{{nil, -1, nil, RewardTxData}},
 				[]transactionbase.TXOutput{{
 					common.NewAmount(1),
-					account.PubKeyHash([]byte{
+					account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 						0x5a, 0xc9, 0x85, 0x37, 0x92, 0x37, 0x76, 0x80,
 						0xb1, 0x31, 0xa1, 0xab, 0xb, 0x5b, 0xa6, 0x49,
-						0xe5, 0x27, 0xf0, 0x42, 0x5d}),
+						0xe5, 0x27, 0xf0, 0x42, 0x5d})),
 					"",
 				}},
 				common.NewAmount(0),
@@ -226,10 +226,10 @@ func TestTransaction_MatchRewards(t *testing.T) {
 				[]transactionbase.TXInput{{nil, -1, nil, RewardTxData}},
 				[]transactionbase.TXOutput{{
 					common.NewAmount(1),
-					account.PubKeyHash([]byte{
+					account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 						0x5a, 0xc9, 0x85, 0x37, 0x92, 0x37, 0x76, 0x80,
 						0xb1, 0x31, 0xa1, 0xab, 0xb, 0x5b, 0xa6, 0x49,
-						0xe5, 0x27, 0xf0, 0x42, 0x5d}),
+						0xe5, 0x27, 0xf0, 0x42, 0x5d})),
 					"",
 				}},
 				common.NewAmount(0),
@@ -246,10 +246,10 @@ func TestTransaction_MatchRewards(t *testing.T) {
 				[]transactionbase.TXInput{{nil, -1, nil, RewardTxData}},
 				[]transactionbase.TXOutput{{
 					common.NewAmount(3),
-					account.PubKeyHash([]byte{
+					account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 						0x5a, 0xc9, 0x85, 0x37, 0x92, 0x37, 0x76, 0x80,
 						0xb1, 0x31, 0xa1, 0xab, 0xb, 0x5b, 0xa6, 0x49,
-						0xe5, 0x27, 0xf0, 0x42, 0x5d}),
+						0xe5, 0x27, 0xf0, 0x42, 0x5d})),
 					"",
 				}},
 				common.NewAmount(0),
@@ -266,17 +266,17 @@ func TestTransaction_MatchRewards(t *testing.T) {
 				[]transactionbase.TXInput{{nil, -1, nil, RewardTxData}},
 				[]transactionbase.TXOutput{{
 					common.NewAmount(1),
-					account.PubKeyHash([]byte{
+					account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 						0x5a, 0xc9, 0x85, 0x37, 0x92, 0x37, 0x76, 0x80,
 						0xb1, 0x31, 0xa1, 0xab, 0xb, 0x5b, 0xa6, 0x49,
-						0xe5, 0x27, 0xf0, 0x42, 0x5d}),
+						0xe5, 0x27, 0xf0, 0x42, 0x5d})),
 					"",
 				},
 					{
 						common.NewAmount(4),
-						account.PubKeyHash([]byte{
+						account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 							90, 13, 39, 130, 118, 11, 160, 130, 83, 126, 86, 102, 252, 178, 87,
-							218, 57, 174, 123, 244, 229}),
+							218, 57, 174, 123, 244, 229})),
 						"",
 					}},
 				common.NewAmount(0),
@@ -296,17 +296,17 @@ func TestTransaction_MatchRewards(t *testing.T) {
 				[]transactionbase.TXInput{{nil, -1, nil, RewardTxData}},
 				[]transactionbase.TXOutput{{
 					common.NewAmount(1),
-					account.PubKeyHash([]byte{
+					account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 						0x5a, 0xc9, 0x85, 0x37, 0x92, 0x37, 0x76, 0x80,
 						0xb1, 0x31, 0xa1, 0xab, 0xb, 0x5b, 0xa6, 0x49,
-						0xe5, 0x27, 0xf0, 0x42, 0x5d}),
+						0xe5, 0x27, 0xf0, 0x42, 0x5d})),
 					"",
 				},
 					{
 						common.NewAmount(4),
-						account.PubKeyHash([]byte{
+						account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 							90, 13, 39, 130, 118, 11, 160, 130, 83, 126, 86, 102, 252, 178, 87,
-							218, 57, 174, 123, 244, 229}),
+							218, 57, 174, 123, 244, 229})),
 						"",
 					}},
 				common.NewAmount(0),
@@ -327,17 +327,17 @@ func TestTransaction_MatchRewards(t *testing.T) {
 				[]transactionbase.TXInput{{nil, -1, nil, RewardTxData}},
 				[]transactionbase.TXOutput{{
 					common.NewAmount(1),
-					account.PubKeyHash([]byte{
+					account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 						0x5a, 0xc9, 0x85, 0x37, 0x92, 0x37, 0x76, 0x80,
 						0xb1, 0x31, 0xa1, 0xab, 0xb, 0x5b, 0xa6, 0x49,
-						0xe5, 0x27, 0xf0, 0x42, 0x5d}),
+						0xe5, 0x27, 0xf0, 0x42, 0x5d})),
 					"",
 				},
 					{
 						common.NewAmount(4),
-						account.PubKeyHash([]byte{
+						account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte{
 							90, 13, 39, 130, 118, 11, 160, 130, 83, 126, 86, 102, 252, 178, 87,
-							218, 57, 174, 123, 244, 229}),
+							218, 57, 174, 123, 244, 229})),
 						"",
 					}},
 				common.NewAmount(0),

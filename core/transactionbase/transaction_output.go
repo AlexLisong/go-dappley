@@ -27,13 +27,13 @@ import (
 )
 
 type TXOutput struct {
-	Value      *common.Amount
-	PubKeyHash account.PubKeyHash
-	Contract   string
+	Value    *common.Amount
+	Account  *account.TransactionAccount
+	Contract string
 }
 
 func (out *TXOutput) GetAddress() account.Address {
-	return out.PubKeyHash.GenerateAddress()
+	return out.Account.GetAddress()
 }
 
 func NewTXOutput(value *common.Amount, account *account.TransactionAccount) *TXOutput {
@@ -45,7 +45,7 @@ func NewContractTXOutput(account *account.TransactionAccount, contract string) *
 }
 
 func NewTxOut(value *common.Amount, account *account.TransactionAccount, contract string) *TXOutput {
-	txo := &TXOutput{value, account.GetPubKeyHash(), contract}
+	txo := &TXOutput{value, account, contract}
 	return txo
 }
 
@@ -70,13 +70,13 @@ func (out *TXOutput) IsFoundInRewardStorage(rewardStorage map[string]string) boo
 func (out *TXOutput) ToProto() proto.Message {
 	return &transactionbasepb.TXOutput{
 		Value:         out.Value.Bytes(),
-		PublicKeyHash: []byte(out.PubKeyHash),
+		PublicKeyHash: []byte(out.Account.GetPubKeyHash()),
 		Contract:      out.Contract,
 	}
 }
 
 func (out *TXOutput) FromProto(pb proto.Message) {
 	out.Value = common.NewAmountFromBytes(pb.(*transactionbasepb.TXOutput).GetValue())
-	out.PubKeyHash = account.PubKeyHash(pb.(*transactionbasepb.TXOutput).GetPublicKeyHash())
+	out.Account = account.NewContractAccountByPubKeyHash(pb.(*transactionbasepb.TXOutput).GetPublicKeyHash())
 	out.Contract = pb.(*transactionbasepb.TXOutput).GetContract()
 }

@@ -195,7 +195,7 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevUtxos []*utxo.UTXO) er
 	for i, vin := range txCopy.Vin {
 		txCopy.Vin[i].Signature = nil
 		oldPubKey := vin.PubKey
-		txCopy.Vin[i].PubKey = []byte(prevUtxos[i].PubKeyHash)
+		txCopy.Vin[i].PubKey = []byte(prevUtxos[i].Account.GetPubKeyHash())
 		txCopy.ID = txCopy.Hash()
 
 		txCopy.Vin[i].PubKey = oldPubKey
@@ -378,7 +378,7 @@ func (tx *Transaction) IsContract() bool {
 	if len(tx.Vout) == 0 {
 		return false
 	}
-	isContract, _ := tx.Vout[ContractTxouputIndex].PubKeyHash.IsContract()
+	isContract, _ := tx.Vout[ContractTxouputIndex].Account.GetPubKeyHash().IsContract()
 	return isContract
 }
 
@@ -414,7 +414,7 @@ func (tx *Transaction) GetToHashBytes() []byte {
 		tempBytes = bytes.Join([][]byte{
 			tempBytes,
 			vout.Value.Bytes(),
-			[]byte(vout.PubKeyHash),
+			[]byte(vout.Account.GetPubKeyHash()),
 			[]byte(vout.Contract),
 		}, []byte{})
 	}
@@ -457,7 +457,7 @@ func (tx *Transaction) TrimmedCopy(withSignature bool) Transaction {
 	}
 
 	for _, vout := range tx.Vout {
-		outputs = append(outputs, transactionbase.TXOutput{vout.Value, vout.PubKeyHash, vout.Contract})
+		outputs = append(outputs, transactionbase.TXOutput{vout.Value, vout.Account, vout.Contract})
 	}
 
 	txCopy := Transaction{tx.ID, inputs, outputs, tx.Tip, tx.GasLimit, tx.GasPrice, tx.CreateTime}
@@ -474,7 +474,7 @@ func (tx *Transaction) DeepCopy() Transaction {
 	}
 
 	for _, vout := range tx.Vout {
-		outputs = append(outputs, transactionbase.TXOutput{vout.Value, vout.PubKeyHash, vout.Contract})
+		outputs = append(outputs, transactionbase.TXOutput{vout.Value, vout.Account, vout.Contract})
 	}
 
 	txCopy := Transaction{tx.ID, inputs, outputs, tx.Tip, tx.GasLimit, tx.GasPrice, tx.CreateTime}
@@ -572,14 +572,14 @@ func NewRewardTx(blockHeight uint64, rewards map[string]string) Transaction {
 	return tx
 }
 
-func NewTransactionByVin(vinTxId []byte, vinVout int, vinPubkey []byte, voutValue uint64, voutPubKeyHash account.PubKeyHash, tip uint64) Transaction {
+func NewTransactionByVin(vinTxId []byte, vinVout int, vinPubkey []byte, voutValue uint64, account *account.TransactionAccount, tip uint64) Transaction {
 	tx := Transaction{
 		ID: nil,
 		Vin: []transactionbase.TXInput{
 			{vinTxId, vinVout, nil, vinPubkey},
 		},
 		Vout: []transactionbase.TXOutput{
-			{common.NewAmount(voutValue), voutPubKeyHash, ""},
+			{common.NewAmount(voutValue), account, ""},
 		},
 		Tip: common.NewAmount(tip),
 	}
@@ -639,7 +639,7 @@ func (ctx *ContractTx) GetContract() string {
 
 //GetContractPubKeyHash returns the smart contract pubkeyhash in a transaction
 func (ctx *ContractTx) GetContractPubKeyHash() account.PubKeyHash {
-	return ctx.Vout[ContractTxouputIndex].PubKeyHash
+	return ctx.Vout[ContractTxouputIndex].Account.GetPubKeyHash()
 }
 
 func (tx *Transaction) MatchRewards(rewardStorage map[string]string) bool {
@@ -680,7 +680,7 @@ func (tx *Transaction) String() string {
 	for i, output := range tx.Vout {
 		lines = append(lines, fmt.Sprintf("     Output %d:", i))
 		lines = append(lines, fmt.Sprintf("       Value:  %d", output.Value))
-		lines = append(lines, fmt.Sprintf("       Script: %x", []byte(output.PubKeyHash)))
+		lines = append(lines, fmt.Sprintf("       Script: %x", []byte(output.Account.GetPubKeyHash())))
 		lines = append(lines, fmt.Sprintf("       Contract: %s", output.Contract))
 	}
 	lines = append(lines, "\n")
@@ -813,7 +813,7 @@ func (tx *Transaction) VerifySignatures(prevUtxos []*utxo.UTXO) (bool, error) {
 	for i, vin := range tx.Vin {
 		txCopy.Vin[i].Signature = nil
 		oldPubKey := txCopy.Vin[i].PubKey
-		txCopy.Vin[i].PubKey = []byte(prevUtxos[i].PubKeyHash)
+		txCopy.Vin[i].PubKey = []byte(prevUtxos[i].Account.GetPubKeyHash())
 		txCopy.ID = txCopy.Hash()
 		txCopy.Vin[i].PubKey = oldPubKey
 
@@ -836,12 +836,12 @@ func (tx *Transaction) VerifySignatures(prevUtxos []*utxo.UTXO) (bool, error) {
 func (tx *Transaction) VerifyPublicKeyHash(prevUtxos []*utxo.UTXO) (bool, error) {
 
 	for i, vin := range tx.Vin {
-		if prevUtxos[i].PubKeyHash == nil {
+		if prevUtxos[i].Account.GetPubKeyHash() == nil {
 			logger.Error("Transaction: previous transaction is not correct.")
 			return false, errors.New("Transaction: prevUtxos not found")
 		}
 
-		isContract, err := prevUtxos[i].PubKeyHash.IsContract()
+		isContract, err := prevUtxos[i].Account.GetPubKeyHash().IsContract()
 		if err != nil {
 			return false, err
 		}
@@ -857,7 +857,7 @@ func (tx *Transaction) VerifyPublicKeyHash(prevUtxos []*utxo.UTXO) (bool, error)
 
 		ta := account.NewTransactionAccountByPubKey(vin.PubKey)
 
-		if !bytes.Equal([]byte(ta.GetPubKeyHash()), []byte(prevUtxos[i].PubKeyHash)) {
+		if !bytes.Equal([]byte(ta.GetPubKeyHash()), []byte(prevUtxos[i].Account.GetPubKeyHash())) {
 			return false, errors.New("Transaction: ID is invalid")
 		}
 	}

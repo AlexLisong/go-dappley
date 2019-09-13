@@ -51,6 +51,13 @@ func NewAccountByPrivateKey(privKey string) *Account {
 	return NewAccountByKey(kp)
 }
 
+func (a Account) GetTransactionAccount() *TransactionAccount {
+	t := &TransactionAccount{}
+	t.address = a.address
+	t.pubKeyHash = a.pubKeyHash
+	return t
+}
+
 func (a Account) GetKeyPair() *KeyPair {
 	return a.key
 }

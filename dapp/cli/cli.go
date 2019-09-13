@@ -883,7 +883,7 @@ func sendCommandHandler(ctx context.Context, c interface{}, flags cmdFlags) {
 		uu := utxo.UTXO{}
 		uu.Value = common.NewAmountFromBytes(u.Amount)
 		uu.Txid = u.Txid
-		uu.PubKeyHash = account.PubKeyHash(u.PublicKeyHash)
+		uu.Account = account.NewContractAccountByPubKeyHash(account.PubKeyHash(u.PublicKeyHash))
 		uu.TxIndex = int(u.TxIndex)
 		InputUtxos = append(InputUtxos, &uu)
 	}
@@ -1084,7 +1084,7 @@ func estimateGasCommandHandler(ctx context.Context, c interface{}, flags cmdFlag
 		uu := utxo.UTXO{}
 		uu.Value = common.NewAmountFromBytes(u.Amount)
 		uu.Txid = u.Txid
-		uu.PubKeyHash = account.PubKeyHash(u.PublicKeyHash)
+		uu.Account = account.NewContractAccountByPubKeyHash(account.PubKeyHash(u.PublicKeyHash))
 		uu.TxIndex = int(u.TxIndex)
 		InputUtxos = append(InputUtxos, &uu)
 	}

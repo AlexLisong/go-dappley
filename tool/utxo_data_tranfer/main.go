@@ -25,6 +25,8 @@ import (
 	"flag"
 	"sync"
 
+	"github.com/dappley/go-dappley/common"
+	"github.com/dappley/go-dappley/core/account"
 	"github.com/dappley/go-dappley/core/utxo"
 	"github.com/dappley/go-dappley/logic/lutxo"
 	"github.com/dappley/go-dappley/storage"
@@ -39,6 +41,15 @@ const dbFilePath = "../../bin/node1.db"
 type UTXOIndexOld struct {
 	index map[string][]*utxo.UTXO
 	mutex *sync.RWMutex
+}
+
+type MokeUtxo struct {
+	Value    *common.Amount
+	pkh      *account.PubKeyHash
+	Contract string
+	Txid     []byte
+	TxIndex  int
+	UtxoType utxo.UtxoType
 }
 
 // Convert old utxo_index map data to new utxo_tx data

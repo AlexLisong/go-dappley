@@ -154,7 +154,7 @@ L:
 				return false
 			}
 
-			isSCUTXO := (*utxoIndex).GetAllUTXOsByPubKeyHash([]byte(ctx.Vout[0].PubKeyHash)).Size() == 0
+			isSCUTXO := (*utxoIndex).GetAllUTXOsByPubKeyHash([]byte(ctx.Vout[0].Account.GetPubKeyHash())).Size() == 0
 			// TODO GAS LIMIT
 			if err := scEngine.SetExecutionLimits(1000, 0); err != nil {
 				return false

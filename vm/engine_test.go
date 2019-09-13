@@ -123,7 +123,7 @@ module.exports = new MathTest();`
 			assert.Equal(t, common.NewAmount(15-10-2), sc.generatedTXs[0].Vout[1].Value)
 
 			assert.Equal(t, account.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj"), sc.generatedTXs[0].Vout[0].GetAddress())
-			assert.Equal(t, contractTA.GetPubKeyHash(), sc.generatedTXs[0].Vout[1].PubKeyHash)
+			assert.Equal(t, contractTA.GetPubKeyHash(), sc.generatedTXs[0].Vout[1].Account.GetPubKeyHash())
 		}
 	}
 }

@@ -20,9 +20,10 @@ package consensus
 
 import (
 	"bytes"
-	"github.com/dappley/go-dappley/common/deadline"
 	"strings"
 	"time"
+
+	"github.com/dappley/go-dappley/common/deadline"
 
 	"github.com/dappley/go-dappley/core/blockproducerinfo"
 
@@ -220,7 +221,7 @@ func (dpos *DPOS) isProducerBeneficiary(block *block.Block) bool {
 		return false
 	}
 
-	return bytes.Compare(producerHash, cbtx.Vout[0].PubKeyHash) == 0
+	return bytes.Compare(producerHash, cbtx.Vout[0].Account.GetPubKeyHash()) == 0
 }
 
 //isDoubleMint returns if the block's producer has already produced a block in the current time slot

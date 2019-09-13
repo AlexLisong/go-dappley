@@ -88,7 +88,7 @@ func MockUtxos(inputs []transactionbase.TXInput) []*utxo.UTXO {
 	for index, input := range inputs {
 		ta := account.NewTransactionAccountByPubKey(input.PubKey)
 		utxos[index] = &utxo.UTXO{
-			TXOutput: transactionbase.TXOutput{Value: common.NewAmount(10), PubKeyHash: ta.GetPubKeyHash(), Contract: ""},
+			TXOutput: transactionbase.TXOutput{common.NewAmount(10), ta, ""},
 			Txid:     input.Txid,
 			TxIndex:  0,
 		}
@@ -100,8 +100,8 @@ func MockUtxos(inputs []transactionbase.TXInput) []*utxo.UTXO {
 func MockTxOutputs() []transactionbase.TXOutput {
 	ta := account.NewTransactionAccountByPubKey(util.GenerateRandomAoB(2))
 	return []transactionbase.TXOutput{
-		{common.NewAmount(5), ta.GetPubKeyHash(), ""},
-		{common.NewAmount(7), ta.GetPubKeyHash(), ""},
+		{common.NewAmount(5), ta, ""},
+		{common.NewAmount(7), ta, ""},
 	}
 }
 
@@ -173,15 +173,15 @@ func MockUtxoInputs() []transactionbase.TXInput {
 
 func MockUtxoOutputsWithoutInputs() []transactionbase.TXOutput {
 	return []transactionbase.TXOutput{
-		{common.NewAmount(5), ta1.GetPubKeyHash(), ""},
-		{common.NewAmount(7), ta1.GetPubKeyHash(), ""},
+		{common.NewAmount(5), ta1, ""},
+		{common.NewAmount(7), ta1, ""},
 	}
 }
 
 func MockUtxoOutputsWithInputs() []transactionbase.TXOutput {
 	return []transactionbase.TXOutput{
-		{common.NewAmount(4), ta1.GetPubKeyHash(), ""},
-		{common.NewAmount(5), ta2.GetPubKeyHash(), ""},
-		{common.NewAmount(3), ta2.GetPubKeyHash(), ""},
+		{common.NewAmount(4), ta1, ""},
+		{common.NewAmount(5), ta2, ""},
+		{common.NewAmount(3), ta2, ""},
 	}
 }

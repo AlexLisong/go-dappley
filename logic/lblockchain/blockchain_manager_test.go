@@ -135,13 +135,13 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 		utxosMap := make(map[string]*utxo.UTXOTx)
 		for _, tx := range txs {
 			for i, vout := range tx.Vout {
-				utxos, ok := utxosMap[vout.PubKeyHash.String()]
+				utxos, ok := utxosMap[vout.Account.GetPubKeyHash().String()]
 				if !ok {
 					newUtxos := utxo.NewUTXOTx()
 					utxos = &newUtxos
 				}
 				utxos.PutUtxo(utxo.NewUTXO(vout, tx.ID, i, utxo.UtxoNormal))
-				utxosMap[vout.PubKeyHash.String()] = utxos
+				utxosMap[vout.Account.GetPubKeyHash().String()] = utxos
 			}
 		}
 		utxoIndex.SetIndex(utxosMap)
@@ -153,7 +153,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	normalTX2 := transaction.Transaction{
 		hash.Hash("normal2"),
 		[]transactionbase.TXInput{{normalTX.ID, 0, nil, acc.GetKeyPair().GetPublicKey()}},
-		[]transactionbase.TXOutput{{common.NewAmount(5), acc.GetPubKeyHash(), ""}},
+		[]transactionbase.TXOutput{{common.NewAmount(5), acc.GetTransactionAccount(), ""}},
 		common.NewAmount(0),
 		common.NewAmount(0),
 		common.NewAmount(0),
@@ -162,7 +162,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	abnormalTX := transaction.Transaction{
 		hash.Hash("abnormal"),
 		[]transactionbase.TXInput{{normalTX.ID, 1, nil, nil}},
-		[]transactionbase.TXOutput{{common.NewAmount(5), account.PubKeyHash([]byte("pkh")), ""}},
+		[]transactionbase.TXOutput{{common.NewAmount(5), account.NewContractAccountByPubKeyHash(account.PubKeyHash([]byte("pkh"))), ""}},
 		common.NewAmount(0),
 		common.NewAmount(0),
 		common.NewAmount(0),

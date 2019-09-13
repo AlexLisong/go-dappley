@@ -51,8 +51,8 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 			{tx1.ID, 1, nil, ta1.GetKeyPair().GetPublicKey()},
 		},
 		Vout: []transactionbase.TXOutput{
-			{common.NewAmount(5), ta1.GetPubKeyHash(), ""},
-			{common.NewAmount(10), ta2.GetPubKeyHash(), ""},
+			{common.NewAmount(5), ta1.GetTransactionAccount(), ""},
+			{common.NewAmount(10), ta2.GetTransactionAccount(), ""},
 		},
 		Tip: common.NewAmount(3),
 	}
@@ -64,8 +64,8 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 			{dependentTx1.ID, 1, nil, ta2.GetKeyPair().GetPublicKey()},
 		},
 		Vout: []transactionbase.TXOutput{
-			{common.NewAmount(5), ta3.GetPubKeyHash(), ""},
-			{common.NewAmount(3), ta4.GetPubKeyHash(), ""},
+			{common.NewAmount(5), ta3.GetTransactionAccount(), ""},
+			{common.NewAmount(3), ta4.GetTransactionAccount(), ""},
 		},
 		Tip: common.NewAmount(2),
 	}
@@ -77,7 +77,7 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 			{dependentTx2.ID, 0, nil, ta3.GetKeyPair().GetPublicKey()},
 		},
 		Vout: []transactionbase.TXOutput{
-			{common.NewAmount(1), ta4.GetPubKeyHash(), ""},
+			{common.NewAmount(1), ta4.GetTransactionAccount(), ""},
 		},
 		Tip: common.NewAmount(4),
 	}
@@ -90,7 +90,7 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 			{dependentTx3.ID, 0, nil, ta4.GetKeyPair().GetPublicKey()},
 		},
 		Vout: []transactionbase.TXOutput{
-			{common.NewAmount(3), ta1.GetPubKeyHash(), ""},
+			{common.NewAmount(3), ta1.GetTransactionAccount(), ""},
 		},
 		Tip: common.NewAmount(1),
 	}
@@ -103,7 +103,7 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 			{dependentTx4.ID, 0, nil, ta1.GetKeyPair().GetPublicKey()},
 		},
 		Vout: []transactionbase.TXOutput{
-			{common.NewAmount(4), ta5.GetPubKeyHash(), ""},
+			{common.NewAmount(4), ta5.GetTransactionAccount(), ""},
 		},
 		Tip: common.NewAmount(4),
 	}

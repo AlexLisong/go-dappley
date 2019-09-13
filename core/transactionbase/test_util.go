@@ -21,8 +21,8 @@ func MockTxInputs() []TXInput {
 
 func MockTxOutputs() []TXOutput {
 	return []TXOutput{
-		{common.NewAmount(5), account.PubKeyHash(util.GenerateRandomAoB(2)), ""},
-		{common.NewAmount(7), account.PubKeyHash(util.GenerateRandomAoB(2)), ""},
+		{common.NewAmount(5), account.NewContractAccountByPubKeyHash(account.PubKeyHash(getAoB(2))), ""},
+		{common.NewAmount(7), account.NewContractAccountByPubKeyHash(account.PubKeyHash(getAoB(2))), ""},
 	}
 }
 
@@ -39,7 +39,7 @@ func GenerateFakeTxInputs() []TXInput {
 
 func GenerateFakeTxOutputs() []TXOutput {
 	return []TXOutput{
-		{common.NewAmount(1), account.PubKeyHash(getAoB(2)), ""},
-		{common.NewAmount(2), account.PubKeyHash(getAoB(2)), ""},
+		{common.NewAmount(1), account.NewContractAccountByPubKeyHash(account.PubKeyHash(getAoB(2))), ""},
+		{common.NewAmount(2), account.NewContractAccountByPubKeyHash(account.PubKeyHash(getAoB(2))), ""},
 	}
 }

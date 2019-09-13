@@ -6,6 +6,7 @@ import (
 	"github.com/dappley/go-dappley/core/scState"
 
 	"errors"
+
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/transaction"
 	"github.com/dappley/go-dappley/core/utxo"
@@ -38,7 +39,7 @@ func EstimateGas(tx *transaction.Transaction, tailBlk *block.Block, utxoCache *u
 		}).Warn("Transaction: cannot find vin while executing smart contract")
 		return 0, err
 	}
-	isSCUTXO := (*utxoIndex).GetAllUTXOsByPubKeyHash([]byte(ctx.Vout[0].PubKeyHash)).Size() == 0
+	isSCUTXO := (*utxoIndex).GetAllUTXOsByPubKeyHash([]byte(ctx.Vout[0].Account.GetPubKeyHash())).Size() == 0
 	gasCount, _, err := ltransaction.Execute(ctx, prevUtxos, isSCUTXO, *utxoIndex, scStorage, rewards, engine, tailBlk.GetHeight()+1, tailBlk)
 	return gasCount, err
 }
