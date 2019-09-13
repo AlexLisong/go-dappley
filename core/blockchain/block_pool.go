@@ -34,7 +34,7 @@ const BlockCacheLRUCacheLimit = 1024
 const ForkCacheLRUCacheLimit = 128
 
 type BlockPool struct {
-	blkCache       *lru.Cache //cache of full blks
+	blkCache       *lru.Cache //TODO: What if the cache is full and a block in fork is deleted by accident
 	root           *common.TreeNode
 	orphans        map[string]*common.TreeNode
 	forkHeadsMutex *sync.RWMutex
@@ -78,6 +78,14 @@ func (pool *BlockPool) AddBlock(blk *block.Block) {
 	node, _ := common.NewTreeNode(blk)
 	pool.blkCache.Add(getKey(node), node)
 	pool.link(node)
+}
+
+func (pool *BlockPool) GetBlockByHash(hash hash.Hash) *block.Block {
+	v, ok := pool.blkCache.Get(hash.String())
+	if !ok {
+		return nil
+	}
+	return v.(*common.TreeNode).GetValue().(*block.Block)
 }
 
 //GetForkHead returns the head of the fork that contains the input block
