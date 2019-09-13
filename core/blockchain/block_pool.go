@@ -215,6 +215,20 @@ func (pool *BlockPool) RemoveFork(fork []*block.Block) {
 	logger.Debug("BlockPool: merge finished or exited, setting syncstate to false.")
 }
 
+func (pool *BlockPool) GetHighestBlock() *block.Block {
+	if pool.root == nil {
+		return nil
+	}
+
+	pathToDeepestNode := pool.root.GetLongestPath()
+
+	if len(pathToDeepestNode) == 0 {
+		return nil
+	}
+
+	return pathToDeepestNode[0].GetValue().(*block.Block)
+}
+
 func getBlocksFromTrees(trees []*common.TreeNode) []*block.Block {
 	var blocks []*block.Block
 	for _, tree := range trees {
