@@ -100,8 +100,8 @@ func (pool *BlockPool) GetForkHead(blk *block.Block) *block.Block {
 	return node.(*common.TreeNode).GetRoot().GetValue().(*block.Block)
 }
 
-//SetRootBlock updates the last irreversible block
-func (pool *BlockPool) SetRootBlock(rootBlk *block.Block) {
+//UpdateRootBlock updates the last irreversible block
+func (pool *BlockPool) UpdateRootBlock(rootBlk *block.Block) {
 
 	value, _ := pool.blkCache.Get(rootBlk.GetHash().String())
 

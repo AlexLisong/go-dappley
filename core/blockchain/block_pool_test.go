@@ -348,7 +348,7 @@ func TestBlockPool_SetRootBlock(t *testing.T) {
 			bp, _ := deserializeBlockPool(tt.serializedBp, tt.rootBlkHash)
 			node, ok := bp.blkCache.Get(hash.Hash(tt.newRootBlkHash).String())
 			assert.True(t, ok)
-			bp.SetRootBlock(node.(*common.TreeNode).GetValue().(*block.Block))
+			bp.UpdateRootBlock(node.(*common.TreeNode).GetValue().(*block.Block))
 			assert.Equal(t, tt.expectedNumOfNodes, bp.blkCache.Len())
 			assert.Equal(t, node, bp.root)
 		})
