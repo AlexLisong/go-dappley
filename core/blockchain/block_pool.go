@@ -312,7 +312,8 @@ func getKey(node *common.TreeNode) string {
 	return node.GetValue().(*block.Block).GetHash().String()
 }
 
-func (pool *BlockPool) printInfo() {
+func (pool *BlockPool) PrintInfo() {
+	logger.SetLevel(logger.InfoLevel)
 	logger.Info("********Block Pool Summary**********")
 	logger.WithFields(logger.Fields{
 		"num_of_nodes": pool.blkCache.Len(),

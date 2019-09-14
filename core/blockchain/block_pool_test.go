@@ -21,8 +21,6 @@ package blockchain
 import (
 	"github.com/dappley/go-dappley/common/hash"
 	"github.com/dappley/go-dappley/core/block"
-	logger "github.com/sirupsen/logrus"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -94,44 +92,44 @@ func TestBlockPool_isBlockValid(t *testing.T) {
 	}{
 		{
 			"Empty Block",
-			createBlock(hash.Hash("child"), nil, 0),
+			CreateBlock(hash.Hash("child"), nil, 0),
 			nil,
 			false,
 		},
 		{
 			"No rootBlkNode",
 			nil,
-			createBlock(hash.Hash("child"), hash.Hash("parent"), 0),
+			CreateBlock(hash.Hash("child"), hash.Hash("parent"), 0),
 			true,
 		},
 		{
 			"rootBlk is parent and input block is 1 block higher",
-			createBlock(hash.Hash("1"), hash.Hash("0"), 0),
-			createBlock(hash.Hash("2"), hash.Hash("1"), 1),
+			CreateBlock(hash.Hash("1"), hash.Hash("0"), 0),
+			CreateBlock(hash.Hash("2"), hash.Hash("1"), 1),
 			true,
 		},
 		{
 			"rootBlk is not parent and input block is 1 block higher",
-			createBlock(hash.Hash("1"), hash.Hash("0"), 0),
-			createBlock(hash.Hash("2"), hash.Hash("3"), 1),
+			CreateBlock(hash.Hash("1"), hash.Hash("0"), 0),
+			CreateBlock(hash.Hash("2"), hash.Hash("3"), 1),
 			false,
 		},
 		{
 			"input block is more than 1 block higher than rootBlk",
-			createBlock(hash.Hash("1"), hash.Hash("0"), 0),
-			createBlock(hash.Hash("2"), hash.Hash("3"), 2),
+			CreateBlock(hash.Hash("1"), hash.Hash("0"), 0),
+			CreateBlock(hash.Hash("2"), hash.Hash("3"), 2),
 			true,
 		},
 		{
 			"input block is same height as rootBlk",
-			createBlock(hash.Hash("1"), hash.Hash("0"), 0),
-			createBlock(hash.Hash("2"), hash.Hash("3"), 2),
+			CreateBlock(hash.Hash("1"), hash.Hash("0"), 0),
+			CreateBlock(hash.Hash("2"), hash.Hash("3"), 2),
 			true,
 		},
 		{
 			"input block is lower than rootBlk",
-			createBlock(hash.Hash("1"), hash.Hash("0"), 5),
-			createBlock(hash.Hash("2"), hash.Hash("3"), 2),
+			CreateBlock(hash.Hash("1"), hash.Hash("0"), 5),
+			CreateBlock(hash.Hash("2"), hash.Hash("3"), 2),
 			false,
 		},
 	}
@@ -184,7 +182,7 @@ func TestBlockPool_removeTree(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := deserializeBlockPool(tt.serializedBp, tt.rootBlkHash)
+			bp, _ := DeserializeBlockPool(tt.serializedBp, tt.rootBlkHash, 0)
 			node, ok := bp.blkCache.Get(hash.Hash(tt.treeRoot).String())
 			assert.True(t, ok)
 			bp.removeTree(node.(*common.TreeNode))
@@ -229,8 +227,107 @@ func TestBlockPool_GetGetHighestBlockBlock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := deserializeBlockPool(tt.serializedBp, tt.rootBlkHash)
+			bp, _ := DeserializeBlockPool(tt.serializedBp, tt.rootBlkHash, 0)
 			assert.Equal(t, hash.Hash(tt.expectedBlkHash), bp.GetHighestBlock().GetHash())
+		})
+	}
+}
+
+func TestBlockPool_AddBlock(t *testing.T) {
+	/*  BLOCK FORK STRUCTURE
+	MAIN FORK:		     1
+				    2        3
+				  8  9     4
+				10	     5 6 7
+
+	*/
+
+	tests := []struct {
+		name                  string
+		serializedBp          string
+		rootBlkHash           string
+		rootBlkHeight         uint64
+		newBlk                *block.Block
+		expectedTailBlockHash string
+		expectedLIBHash       string
+		expectedNumOfNodes    int
+		expectedNumOfOrphans  int
+	}{
+		{
+			"Add Block To Tail",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
+			"1",
+			0,
+			CreateBlock(hash.Hash("new"), hash.Hash("10"), 4),
+			"new",
+			"1",
+			11,
+			0,
+		},
+		{
+			"Add Block To an orphan",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 3^11",
+			"1",
+			0,
+			CreateBlock(hash.Hash("new"), hash.Hash("11"), 4),
+			"10",
+			"1",
+			12,
+			1,
+		},
+		{
+			"Add an orphan block",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 3^11",
+			"1",
+			0,
+			CreateBlock(hash.Hash("new"), hash.Hash("12"), 4),
+			"10",
+			"1",
+			12,
+			2,
+		},
+		{
+			"Add block to the top of an orphan fork",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 3^13#11",
+			"1",
+			0,
+			CreateBlock(hash.Hash("13"), hash.Hash("12"), 2),
+			"10",
+			"1",
+			12,
+			1,
+		},
+		{
+			"Link an orphan to main fork",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 3^13#11",
+			"1",
+			0,
+			CreateBlock(hash.Hash("13"), hash.Hash("2"), 2),
+			"10",
+			"1",
+			12,
+			0,
+		},
+		{
+			"Link an higher height orphan to main fork",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 3^13#11, 11#14, 14#15",
+			"1",
+			0,
+			CreateBlock(hash.Hash("13"), hash.Hash("2"), 2),
+			"15",
+			"1",
+			14,
+			0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bp, _ := DeserializeBlockPool(tt.serializedBp, tt.rootBlkHash, tt.rootBlkHeight)
+			bp.AddBlock(tt.newBlk)
+			assert.Equal(t, hash.Hash(tt.expectedLIBHash).String(), getKey(bp.root))
+			assert.Equal(t, hash.Hash(tt.expectedTailBlockHash).String(), bp.GetHighestBlock().GetHash().String())
+			assert.Equal(t, tt.expectedNumOfNodes, bp.blkCache.Len())
+			assert.Equal(t, tt.expectedNumOfOrphans, len(bp.orphans))
 		})
 	}
 }
@@ -345,7 +442,7 @@ func TestBlockPool_SetRootBlock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := deserializeBlockPool(tt.serializedBp, tt.rootBlkHash)
+			bp, _ := DeserializeBlockPool(tt.serializedBp, tt.rootBlkHash, 0)
 			node, ok := bp.blkCache.Get(hash.Hash(tt.newRootBlkHash).String())
 			assert.True(t, ok)
 			bp.UpdateRootBlock(node.(*common.TreeNode).GetValue().(*block.Block))
@@ -361,85 +458,4 @@ func testGetForkHeadHashes(bp *BlockPool) []string {
 		hashes = append(hashes, blkHash)
 	})
 	return hashes
-}
-
-func createBlock(currentHash hash.Hash, prevHash hash.Hash, height uint64) *block.Block {
-	return block.NewBlockWithRawInfo(currentHash, prevHash, 0, 0, height, nil)
-}
-
-//deserializeBlockPool creates a block pool by deserializing the input string. return the root of the tree
-func deserializeBlockPool(s string, rootBlkHash string) (*BlockPool, map[string]*block.Block) {
-	/* "0^1, 1#2, 1#3, 3#4, 0^5, 1^6" describes a block pool like following"
-				1      5
-			   2 3			6
-	              4
-	*/
-	if s == "" {
-		return NewBlockPool(nil), nil
-	}
-
-	s += ","
-
-	rootBlk := createBlock(hash.Hash(rootBlkHash), nil, 0)
-	bp := NewBlockPool(rootBlk)
-
-	var parentBlk *block.Block
-	currStr := ""
-	blkHeight := 0
-	blocks := make(map[string]*block.Block)
-	blocks[hash.Hash(rootBlkHash).String()] = rootBlk
-
-	for _, c := range s {
-		switch c {
-		case ',':
-
-			if currStr == rootBlkHash {
-				currStr = ""
-				continue
-			}
-
-			var blk *block.Block
-			if parentBlk == nil {
-				blk = createBlock(hash.Hash(currStr), nil, uint64(blkHeight))
-			} else {
-				blk = createBlock(hash.Hash(currStr), parentBlk.GetHash(), parentBlk.GetHeight()+1)
-			}
-			bp.AddBlock(blk)
-			blocks[hash.Hash(currStr).String()] = blk
-			if parentBlk == nil {
-				logger.WithFields(logger.Fields{
-					"hash": hash.Hash(currStr).String(),
-				}).Debug("Add a new head block")
-			} else {
-				logger.WithFields(logger.Fields{
-					"hash":   hash.Hash(currStr).String(),
-					"parent": parentBlk.GetHash().String(),
-				}).Debug("Add a new block")
-			}
-			currStr = ""
-			parentBlk = nil
-			blkHeight = 0
-		case '#':
-			if _, isFound := blocks[hash.Hash(currStr).String()]; !isFound {
-				logger.WithFields(logger.Fields{
-					"hash": hash.Hash(currStr).String(),
-				}).Panic("deserialize tree failed: the parent node is not found")
-			}
-			parentBlk = blocks[hash.Hash(currStr).String()]
-			currStr = ""
-		case '^':
-			num, err := strconv.Atoi(currStr)
-			if err != nil {
-				logger.WithError(err).Panic("deserialize block pool failed while converting string to int")
-			}
-			blkHeight = num
-			currStr = ""
-		case ' ':
-			continue
-		default:
-			currStr = currStr + string(c)
-		}
-	}
-
-	return bp, blocks
 }
