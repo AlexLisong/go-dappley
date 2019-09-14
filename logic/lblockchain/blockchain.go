@@ -43,11 +43,7 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-var tipKey = []byte("tailBlockHash")
-var libKey = []byte("lastIrreversibleBlockHash")
-
 var (
-	ErrBlockDoesNotExist       = errors.New("block does not exist")
 	ErrPrevHashVerifyFailed    = errors.New("prevhash verify failed")
 	ErrTransactionNotFound     = errors.New("transaction not found")
 	ErrTransactionVerifyFailed = errors.New("transaction verification failed")
