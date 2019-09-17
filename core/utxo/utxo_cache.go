@@ -30,13 +30,14 @@ const UtxoCacheLRUCacheLimit = 1024
 type UTXOCache struct {
 	// key: address, value: UTXOTx
 	cache *lru.Cache
-	db    storage.Storage
+	db    storage.UTXODB
 }
 
 func NewUTXOCache(db storage.Storage) *UTXOCache {
+	utxoDB := storage.NewUTXODB(db)
 	utxoCache := &UTXOCache{
 		cache: nil,
-		db:    db,
+		db:    utxoDB,
 	}
 	utxoCache.cache, _ = lru.New(UtxoCacheLRUCacheLimit)
 	return utxoCache
@@ -75,12 +76,12 @@ func (utxoCache *UTXOCache) Put(pubKeyHash account.PubKeyHash, value *UTXOTx) er
 	//	utxotxTemp = nil
 	//}
 	utxoCache.cache.Add(string(pubKeyHash), &savedUtxoTx)
-	return utxoCache.db.Put(pubKeyHash, value.Serialize())
+	return utxoCache.db.Save(pubKeyHash, value.Serialize())
 }
 
 func (utxoCache *UTXOCache) Delete(pubKeyHash account.PubKeyHash) error {
 	if pubKeyHash == nil {
 		return account.ErrEmptyPublicKeyHash
 	}
-	return utxoCache.db.Del(pubKeyHash)
+	return utxoCache.db.Delete(pubKeyHash)
 }
