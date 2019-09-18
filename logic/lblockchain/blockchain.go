@@ -389,12 +389,7 @@ func (bc *Blockchain) Rollback(targetHash hash.Hash, utxo *lutxo.UTXOIndex, scSt
 }
 
 func (bc *Blockchain) setTailBlockHash(hash hash.Hash) error {
-	err := bc.db.Put(tipKey, hash)
-	if err != nil {
-		return err
-	}
-	bc.bc.SetTailBlockHash(hash)
-	return nil
+	return bc.bc.SetTailBlockHash(hash)
 }
 
 func (bc *Blockchain) DeepCopy() *Blockchain {
@@ -404,31 +399,7 @@ func (bc *Blockchain) DeepCopy() *Blockchain {
 }
 
 func (bc *Blockchain) SetLIBHash(hash hash.Hash) error {
-	err := bc.db.Put(libKey, hash)
-	if err != nil {
-		return err
-	}
-	bc.bc.SetLIBHash(hash)
-	return nil
-}
-
-func (bc *Blockchain) IsLIB(blk *block.Block) bool {
-	blkFromDb, err := bc.GetBlockByHash(blk.GetHash())
-	if err != nil {
-		logger.Error("Blockchain:get block by hash from blockchain error: ", err)
-		return false
-	}
-	if blkFromDb == nil {
-		logger.Error("Blockchain:blk is not exist in blockchain")
-		return false
-	}
-
-	lib, _ := bc.GetLIB()
-
-	if lib.GetHeight() >= blkFromDb.GetHeight() {
-		return true
-	}
-	return false
+	return bc.bc.SetLIBHash(hash)
 }
 
 // GasPrice returns gas price in current blockchain
@@ -509,5 +480,5 @@ func (bc *Blockchain) updateLIB(currBlkHeight uint64) {
 		return
 	}
 
-	bc.SetLIBHash(LIBBlk.GetHash())
+	bc.bc.SetLIBHash(LIBBlk.GetHash())
 }
