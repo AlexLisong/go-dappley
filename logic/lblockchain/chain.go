@@ -74,7 +74,7 @@ func (bc *Chain) GetTailBlockHash() hash.Hash {
 	return bc.bc.GetTailBlockHash()
 }
 
-func (bc *Chain) GetLIBBlockHash() hash.Hash {
+func (bc *Chain) GetLIBHash() hash.Hash {
 	return bc.bc.GetLIBHash()
 }
 
@@ -115,7 +115,7 @@ func (bc *Chain) GetTailBlock() (*block.Block, error) {
 }
 
 func (bc *Chain) GetLIB() (*block.Block, error) {
-	return bc.GetBlockByHash(bc.GetLIBBlockHash())
+	return bc.GetBlockByHash(bc.GetLIBHash())
 }
 
 func (bc *Chain) GetMaxHeight() uint64 {
@@ -217,7 +217,7 @@ func (bc *Chain) updateLIBInfo() {
 		}
 	}
 
-	if currBlk.GetHash().Equals(bc.GetLIBBlockHash()) {
+	if currBlk.GetHash().Equals(bc.GetLIBHash()) {
 		return
 	}
 
@@ -302,8 +302,30 @@ func (bc *Chain) AddBlockToDb(blk *block.Block) error {
 	}
 	return nil
 }
+
 func (bc *Chain) IsBlockTooLow(blk *block.Block) bool {
 	return blk.GetHeight() <= bc.GetLIBHeight()
+}
+
+func (bc *Chain) Iterator() *Chain {
+	return &Chain{
+		bc: bc.bc,
+		db: bc.db,
+	}
+}
+
+func (bc *Chain) Next() (*block.Block, error) {
+	var blk *block.Block
+	encodedBlock, err := bc.db.Get(bc.GetTailBlockHash())
+	if err != nil {
+		return nil, err
+	}
+
+	blk = block.Deserialize(encodedBlock)
+
+	bc.bc.SetTailBlockHash(blk.GetPrevHash())
+
+	return blk, nil
 }
 
 func calculateLIBHeight(tailBlkHeight uint64, minConfirmationNum int) uint64 {

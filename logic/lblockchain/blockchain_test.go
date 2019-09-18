@@ -92,7 +92,7 @@ func TestBlockchain_HigherThanBlockchainTestHigher(t *testing.T) {
 	bc := CreateBlockchain(addr, s, nil, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
 	blk := block.GenerateMockBlock()
 	blk.SetHeight(1)
-	assert.True(t, bc.IsHigherThanBlockchain(blk))
+	assert.True(t, blk.GetHeight() > bc.GetMaxHeight())
 }
 
 func TestBlockchain_HigherThanBlockchainTestLower(t *testing.T) {
@@ -107,7 +107,7 @@ func TestBlockchain_HigherThanBlockchainTestLower(t *testing.T) {
 	blk.SetHeight(1)
 	bc.AddBlockContextToTail(PrepareBlockContext(bc, blk))
 
-	assert.False(t, bc.IsHigherThanBlockchain(blk))
+	assert.False(t, blk.GetHeight() > bc.GetMaxHeight())
 
 }
 

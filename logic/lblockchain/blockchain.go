@@ -54,7 +54,7 @@ var (
 )
 
 type Blockchain struct {
-	bc           blockchain.Blockchain
+	bc           *Chain
 	db           storage.Storage
 	utxoCache    *utxo.UTXOCache
 	libPolicy    LIBPolicy
@@ -69,7 +69,7 @@ type Blockchain struct {
 func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIBPolicy, txPool *transactionpool.TransactionPool, scManager core.ScEngineManager, blkSizeLimit int) *Blockchain {
 	genesis := NewGenesisBlock(address, transaction.Subsidy)
 	bc := &Blockchain{
-		blockchain.NewBlockchain(genesis.GetHash(), genesis.GetHash()),
+		NewChain(genesis, db, libPolicy),
 		db,
 		utxo.NewUTXOCache(db),
 		libPolicy,
@@ -90,18 +90,9 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 }
 
 func GetBlockchain(db storage.Storage, libPolicy LIBPolicy, txPool *transactionpool.TransactionPool, scManager core.ScEngineManager, blkSizeLimit int) (*Blockchain, error) {
-	var tip []byte
-	tip, err := db.Get(tipKey)
-	if err != nil {
-		return nil, err
-	}
-	lib, err := db.Get(libKey)
-	if err != nil {
-		return nil, err
-	}
 
 	bc := &Blockchain{
-		blockchain.NewBlockchain(tip, lib),
+		LoadBlockchainFromDb(db, libPolicy),
 		db,
 		utxo.NewUTXOCache(db),
 		libPolicy,
@@ -151,46 +142,27 @@ func (bc *Blockchain) GetBlockSizeLimit() int {
 }
 
 func (bc *Blockchain) GetTailBlock() (*block.Block, error) {
-	hash := bc.GetTailBlockHash()
-	return bc.GetBlockByHash(hash)
+	return bc.bc.GetTailBlock()
 }
 
 func (bc *Blockchain) GetLIB() (*block.Block, error) {
-	hash := bc.GetLIBHash()
-	return bc.GetBlockByHash(hash)
+	return bc.bc.GetLIB()
 }
 
 func (bc *Blockchain) GetMaxHeight() uint64 {
-	block, err := bc.GetTailBlock()
-	if err != nil {
-		return 0
-	}
-	return block.GetHeight()
+	return bc.bc.GetMaxHeight()
 }
 
 func (bc *Blockchain) GetLIBHeight() uint64 {
-	block, err := bc.GetLIB()
-	if err != nil {
-		return 0
-	}
-	return block.GetHeight()
+	return bc.bc.GetLIBHeight()
 }
 
 func (bc *Blockchain) GetBlockByHash(hash hash.Hash) (*block.Block, error) {
-	rawBytes, err := bc.db.Get(hash)
-	if err != nil {
-		return nil, ErrBlockDoesNotExist
-	}
-	return block.Deserialize(rawBytes), nil
+	return bc.bc.GetBlockByHash(hash)
 }
 
 func (bc *Blockchain) GetBlockByHeight(height uint64) (*block.Block, error) {
-	hash, err := bc.db.Get(util.UintToHex(height))
-	if err != nil {
-		return nil, ErrBlockDoesNotExist
-	}
-
-	return bc.GetBlockByHash(hash)
+	return bc.GetBlockByHeight(height)
 }
 
 func (bc *Blockchain) SetTailBlockHash(tailBlockHash hash.Hash) {
@@ -198,11 +170,11 @@ func (bc *Blockchain) SetTailBlockHash(tailBlockHash hash.Hash) {
 }
 
 func (bc *Blockchain) SetState(state blockchain.BlockchainState) {
-	bc.bc.SetState(state)
+	bc.bc.bc.SetState(state)
 }
 
 func (bc *Blockchain) GetState() blockchain.BlockchainState {
-	return bc.bc.GetState()
+	return bc.bc.bc.GetState()
 }
 
 func (bc *Blockchain) AddBlockContextToTail(ctx *BlockContext) error {
@@ -302,32 +274,12 @@ func (bc *Blockchain) runScheduleEvents(ctx *BlockContext, parentBlk *block.Bloc
 	return nil
 }
 
-func (bc *Blockchain) Iterator() *Blockchain {
-	return &Blockchain{
-		blockchain.NewBlockchain(bc.GetTailBlockHash(), bc.GetLIBHash()),
-		bc.db,
-		bc.utxoCache,
-		bc.libPolicy,
-		nil,
-		nil,
-		nil,
-		bc.blkSizeLimit,
-		bc.mutex,
-	}
+func (bc *Blockchain) Iterator() *Chain {
+	return bc.bc.Iterator()
 }
 
 func (bc *Blockchain) Next() (*block.Block, error) {
-	var blk *block.Block
-	encodedBlock, err := bc.db.Get(bc.GetTailBlockHash())
-	if err != nil {
-		return nil, err
-	}
-
-	blk = block.Deserialize(encodedBlock)
-
-	bc.bc.SetTailBlockHash(blk.GetPrevHash())
-
-	return blk, nil
+	return bc.bc.Next()
 }
 
 func (bc *Blockchain) String() string {
@@ -378,10 +330,6 @@ func (bc *Blockchain) AddBlockToDb(blk *block.Block) error {
 		}
 	}
 	return nil
-}
-
-func (bc *Blockchain) IsHigherThanBlockchain(block *block.Block) bool {
-	return block.GetHeight() > bc.GetMaxHeight()
 }
 
 func (bc *Blockchain) IsInBlockchain(hash hash.Hash) bool {

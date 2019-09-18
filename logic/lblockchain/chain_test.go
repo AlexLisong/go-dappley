@@ -366,7 +366,7 @@ func TestChain_AddBlock(t *testing.T) {
 
 			assert.Equal(t, tt.expectedErr, err)
 			assert.Equal(t, hash.Hash(tt.expectedTailBlockHash), bc.GetTailBlockHash())
-			assert.Equal(t, hash.Hash(tt.expectedLIBHash), bc.GetLIBBlockHash())
+			assert.Equal(t, hash.Hash(tt.expectedLIBHash), bc.GetLIBHash())
 
 			//check if the new LIBs are stored in db
 			for _, blk := range tt.expectedBlksInDb {
