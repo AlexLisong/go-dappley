@@ -52,7 +52,7 @@ func getStorageKey(txid []byte) []byte {
 }
 
 // Add new log
-func PutTxJournal(tx Transaction, db storage.Storage) error {
+func PutTxJournal(tx Transaction, db Storage) error {
 	txJournal := NewTxJournal(tx.ID, tx.Vout)
 	return txJournal.Save(db)
 }
@@ -75,7 +75,7 @@ func GetTxOutput(vin transactionbase.TXInput, db storage.Storage) (transactionba
 }
 
 // Save TxJournal into database
-func (txJournal *TxJournal) Save(db storage.Storage) error {
+func (txJournal *TxJournal) Save(db Storage) error {
 	bytes, err := txJournal.SerializeJournal()
 	if err != nil {
 		return err
