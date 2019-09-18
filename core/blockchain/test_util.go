@@ -18,7 +18,7 @@ func DeserializeBlockPool(s string, rootBlkHash string, rootBlkHeight uint64) (*
 			   2 3			6
 	              4
 	*/
-	if s == "" {
+	if rootBlkHash == "" {
 		return NewBlockPool(nil), nil
 	}
 
@@ -55,12 +55,14 @@ func DeserializeBlockPool(s string, rootBlkHash string, rootBlkHeight uint64) (*
 			blocks[hash.Hash(currStr).String()] = blk
 			if parentBlk == nil {
 				logger.WithFields(logger.Fields{
-					"hash": hash.Hash(currStr).String(),
+					"hash":   hash.Hash(currStr).String(),
+					"height": blk.GetHeight(),
 				}).Debug("Add a new head block")
 			} else {
 				logger.WithFields(logger.Fields{
 					"hash":   hash.Hash(currStr).String(),
 					"parent": parentBlk.GetHash().String(),
+					"height": blk.GetHeight(),
 				}).Debug("Add a new block")
 			}
 			currStr = ""
