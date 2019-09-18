@@ -333,8 +333,7 @@ func (bc *Blockchain) AddBlockToDb(blk *block.Block) error {
 }
 
 func (bc *Blockchain) IsInBlockchain(hash hash.Hash) bool {
-	_, err := bc.GetBlockByHash(hash)
-	return err == nil
+	return bc.bc.IsInBlockchain(hash)
 }
 
 //rollback the blockchain to a block with the targetHash

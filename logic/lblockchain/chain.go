@@ -328,6 +328,11 @@ func (bc *Chain) Next() (*block.Block, error) {
 	return blk, nil
 }
 
+func (bc *Chain) IsInBlockchain(hash hash.Hash) bool {
+	_, err := bc.GetBlockByHash(hash)
+	return err == nil
+}
+
 func calculateLIBHeight(tailBlkHeight uint64, minConfirmationNum int) uint64 {
 	LIBHeight := uint64(0)
 	if tailBlkHeight > uint64(minConfirmationNum) {
