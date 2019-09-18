@@ -162,7 +162,7 @@ func (bc *Blockchain) GetBlockByHash(hash hash.Hash) (*block.Block, error) {
 }
 
 func (bc *Blockchain) GetBlockByHeight(height uint64) (*block.Block, error) {
-	return bc.GetBlockByHeight(height)
+	return bc.bc.GetBlockByHeight(height)
 }
 
 func (bc *Blockchain) SetTailBlockHash(tailBlockHash hash.Hash) {

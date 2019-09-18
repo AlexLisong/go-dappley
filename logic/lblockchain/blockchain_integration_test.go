@@ -19,6 +19,7 @@
 package lblockchain
 
 import (
+	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"testing"
 
 	"github.com/dappley/go-dappley/core/block"
@@ -42,7 +43,10 @@ func TestBlockchain_RollbackToABlockWithTransactions(t *testing.T) {
 	defer s.Close()
 	coinbaseAccount := account.NewAccount()
 	coinbaseAddr := coinbaseAccount.GetAddress()
-	bc := CreateBlockchain(coinbaseAddr, s, nil, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
+	policy := &mocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+
+	bc := CreateBlockchain(coinbaseAddr, s, policy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
 
 	for i := 0; i < 3; i++ {
 		tailBlk, _ := bc.GetTailBlock()

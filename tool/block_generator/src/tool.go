@@ -3,6 +3,7 @@ package tool
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"io/ioutil"
 	"os"
 
@@ -65,8 +66,10 @@ func GenerateNewBlockChain(files []FileInfo, d *consensus.Dynasty, keys Keys, co
 	addr := account.NewAddress(genesisAddr)
 	numOfTx = config.NumOfNormalTx
 	numOfScTx = config.NumOfScTx
+	policy := &mocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
 	for i := range files {
-		bc := lblockchain.CreateBlockchain(addr, files[i].Db, nil, transactionpool.NewTransactionPool(nil, 200), nil, 1000000)
+		bc := lblockchain.CreateBlockchain(addr, files[i].Db, policy, transactionpool.NewTransactionPool(nil, 200), nil, 1000000)
 		bcs[i] = bc
 	}
 

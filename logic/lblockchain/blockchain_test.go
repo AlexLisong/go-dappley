@@ -40,8 +40,10 @@ import (
 
 	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/core/account"
+	bcMocks "github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"github.com/dappley/go-dappley/storage"
 	"github.com/dappley/go-dappley/storage/mocks"
+
 	logger "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -59,7 +61,10 @@ func TestCreateBlockchain(t *testing.T) {
 	defer s.Close()
 
 	addr := account.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
-	bc := CreateBlockchain(addr, s, nil, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	policy := &bcMocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+
+	bc := CreateBlockchain(addr, s, policy, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
 
 	//find next block. This block should be the genesis block and its prev hash should be empty
 	blk, err := bc.Next()
@@ -72,7 +77,9 @@ func TestBlockchain_SetTailBlockHash(t *testing.T) {
 	defer s.Close()
 
 	addr := account.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
-	bc := CreateBlockchain(addr, s, nil, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	policy := &bcMocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+	bc := CreateBlockchain(addr, s, policy, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
 
 	tailHash := hash.Hash("TestHash")
 	bc.SetTailBlockHash(tailHash)
@@ -89,7 +96,9 @@ func TestBlockchain_HigherThanBlockchainTestHigher(t *testing.T) {
 	defer s.Close()
 
 	addr := account.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
-	bc := CreateBlockchain(addr, s, nil, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	policy := &bcMocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+	bc := CreateBlockchain(addr, s, policy, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
 	blk := block.GenerateMockBlock()
 	blk.SetHeight(1)
 	assert.True(t, blk.GetHeight() > bc.GetMaxHeight())
@@ -101,7 +110,9 @@ func TestBlockchain_HigherThanBlockchainTestLower(t *testing.T) {
 	defer s.Close()
 
 	addr := account.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
-	bc := CreateBlockchain(addr, s, nil, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	policy := &bcMocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+	bc := CreateBlockchain(addr, s, policy, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
 	tailblk, _ := bc.GetTailBlock()
 	blk := ltransaction.GenerateBlockWithCbtx(addr, tailblk)
 	blk.SetHeight(1)
@@ -117,7 +128,9 @@ func TestBlockchain_IsInBlockchain(t *testing.T) {
 	defer s.Close()
 
 	addr := account.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
-	bc := CreateBlockchain(addr, s, nil, transactionpool.NewTransactionPool(nil, 128), nil, 100000)
+	policy := &bcMocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+	bc := CreateBlockchain(addr, s, policy, transactionpool.NewTransactionPool(nil, 128), nil, 100000)
 
 	blk := core.GenerateUtxoMockBlockWithoutInputs()
 	bc.AddBlockContextToTail(PrepareBlockContext(bc, blk))
@@ -156,7 +169,12 @@ func TestBlockchain_AddBlockToTail(t *testing.T) {
 
 	// Create a blockchain for testing
 	addr := account.NewAddress("dGDrVKjCG3sdXtDUgWZ7Fp3Q97tLhqWivf")
-	bc := &Blockchain{blockchain.NewBlockchain(hash.Hash{}, hash.Hash{}), db, utxo.NewUTXOCache(db), nil, transactionpool.NewTransactionPool(nil, 128), nil, nil, 1000000, &sync.Mutex{}}
+	bc := &Blockchain{&Chain{
+		bc:        blockchain.NewBlockchain(hash.Hash{}, hash.Hash{}),
+		forks:     blockchain.NewBlockPool(nil),
+		db:        db,
+		LIBPolicy: nil,
+	}, db, utxo.NewUTXOCache(db), nil, transactionpool.NewTransactionPool(nil, 128), nil, nil, 1000000, &sync.Mutex{}}
 	bc.SetState(blockchain.BlockchainInit)
 
 	// Add genesis block
@@ -207,8 +225,9 @@ func BenchmarkBlockchain_AddBlockToTail(b *testing.B) {
 
 	s := storage.NewRamStorage()
 	addr := account.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
-
-	bc := CreateBlockchain(addr, s, nil, transactionpool.NewTransactionPool(nil, 1280000), nil, 100000)
+	policy := &bcMocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+	bc := CreateBlockchain(addr, s, policy, transactionpool.NewTransactionPool(nil, 1280000), nil, 100000)
 	var accounts []*account.Account
 	for i := 0; i < 10; i++ {
 		acc := account.NewAccount()
@@ -242,7 +261,9 @@ func GenerateMockBlockchain(size int) *Blockchain {
 	s := storage.NewRamStorage()
 
 	addr := account.NewAddress("16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
-	bc := CreateBlockchain(addr, s, nil, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
+	policy := &bcMocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+	bc := CreateBlockchain(addr, s, policy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
 
 	for i := 0; i < size; i++ {
 		tailBlk, _ := bc.GetTailBlock()
