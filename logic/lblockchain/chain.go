@@ -29,22 +29,43 @@ type Chain struct {
 	forkHash  *lru.Cache //key: block height; value: block hash
 }
 
-func NewChain(tailBlk *block.Block, LIBBlk *block.Block, db Storage, policy LIBPolicy) *Chain {
-	if tailBlk == nil {
-		return nil
-	}
+func NewChain(LIBBlk *block.Block, db Storage, policy LIBPolicy) *Chain {
 
 	if LIBBlk == nil {
 		return nil
 	}
 
 	chain := &Chain{
-		bc:        blockchain.NewBlockchain(tailBlk.GetHash(), LIBBlk.GetHash()),
+		bc:        blockchain.NewBlockchain(LIBBlk.GetHash(), LIBBlk.GetHash()),
 		forks:     blockchain.NewBlockPool(LIBBlk),
 		db:        db,
 		LIBPolicy: policy,
 	}
 
+	chain.forkHash, _ = lru.New(policy.GetMinConfirmationNum() + 1)
+	return chain
+}
+
+func LoadBlockchainFromDb(db Storage, policy LIBPolicy) *Chain {
+
+	LIBHash, err := db.Get(libKey)
+	if err != nil {
+		logger.WithError(err).Error("Blockchain: Getting last irreversible block hash failed during loading blockchain from database")
+		return nil
+	}
+
+	LIBRawBytes, err := db.Get(LIBHash)
+	if err != nil {
+		logger.WithError(err).Error("Blockchain: Getting last irreversible block failed during loading blockchain from database")
+		return nil
+	}
+
+	chain := &Chain{
+		bc:        blockchain.NewBlockchain(LIBHash, LIBHash),
+		forks:     blockchain.NewBlockPool(block.Deserialize(LIBRawBytes)),
+		db:        db,
+		LIBPolicy: policy,
+	}
 	chain.forkHash, _ = lru.New(policy.GetMinConfirmationNum() + 1)
 	return chain
 }
@@ -173,16 +194,31 @@ func (bc *Chain) updateTailBlockInfo() {
 func (bc *Chain) updateLIBInfo() {
 	newLIBHeight := calculateLIBHeight(bc.GetMaxHeight(), bc.LIBPolicy.GetMinConfirmationNum())
 
+	if newLIBHeight < bc.GetLIBHeight() {
+		newLIBHeight = bc.GetLIBHeight()
+	}
+
 	currBlk, err := bc.GetTailBlock()
 	if err != nil {
 		logger.WithError(err).Panic("Blockchain: get tail block failed during LIB information update")
 	}
 
 	for currBlk.GetHeight() > newLIBHeight {
+
+		prevHash := currBlk.GetPrevHash()
+
+		if prevHash == nil {
+			return
+		}
+
 		currBlk, err = bc.GetBlockByHash(currBlk.GetPrevHash())
 		if err != nil {
 			logger.WithError(err).Panic("Blockchain: get previous block failed during LIB information update")
 		}
+	}
+
+	if currBlk.GetHash().Equals(bc.GetLIBBlockHash()) {
+		return
 	}
 
 	bc.saveLIB(currBlk)

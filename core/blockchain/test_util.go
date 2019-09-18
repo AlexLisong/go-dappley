@@ -12,18 +12,17 @@ func CreateBlock(currentHash hash.Hash, prevHash hash.Hash, height uint64) *bloc
 }
 
 //DeserializeBlockPool creates a block pool by deserializing the input string. return the root of the tree
-func DeserializeBlockPool(s string, rootBlkHash string, rootBlkHeight uint64) (*BlockPool, map[string]*block.Block) {
+func DeserializeBlockPool(s string, rootBlk *block.Block) (*BlockPool, map[string]*block.Block) {
 	/* "0^1, 1#2, 1#3, 3#4, 0^5, 1^6" describes a block pool like following"
 				1      5
 			   2 3			6
 	              4
 	*/
-	if rootBlkHash == "" {
+	if rootBlk == nil {
 		return NewBlockPool(nil), nil
 	}
 
 	s += ","
-	rootBlk := CreateBlock(hash.Hash(rootBlkHash), nil, rootBlkHeight)
 	bp := NewBlockPool(rootBlk)
 
 	var parentBlk *block.Block
@@ -31,13 +30,13 @@ func DeserializeBlockPool(s string, rootBlkHash string, rootBlkHeight uint64) (*
 	parentBlkHash := ""
 	blkHeight := -1
 	blocks := make(map[string]*block.Block)
-	blocks[hash.Hash(rootBlkHash).String()] = rootBlk
+	blocks[rootBlk.GetHash().String()] = rootBlk
 
 	for _, c := range s {
 		switch c {
 		case ',':
 
-			if currStr == rootBlkHash {
+			if hash.Hash(currStr).Equals(rootBlk.GetHash()) {
 				currStr = ""
 				continue
 			}

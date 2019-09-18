@@ -182,7 +182,7 @@ func TestBlockPool_removeTree(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := DeserializeBlockPool(tt.serializedBp, tt.rootBlkHash, 0)
+			bp, _ := DeserializeBlockPool(tt.serializedBp, CreateBlock(hash.Hash(tt.rootBlkHash), nil, 0))
 			node, ok := bp.blkCache.Get(hash.Hash(tt.treeRoot).String())
 			assert.True(t, ok)
 			bp.removeTree(node.(*common.TreeNode))
@@ -227,8 +227,7 @@ func TestBlockPool_GetGetHighestBlockBlock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := DeserializeBlockPool(tt.serializedBp, tt.rootBlkHash, 0)
-			bp.PrintInfo()
+			bp, _ := DeserializeBlockPool(tt.serializedBp, CreateBlock(hash.Hash(tt.rootBlkHash), nil, 0))
 			assert.Equal(t, hash.Hash(tt.expectedBlkHash), bp.GetHighestBlock().GetHash())
 		})
 	}
@@ -323,7 +322,7 @@ func TestBlockPool_AddBlock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := DeserializeBlockPool(tt.serializedBp, tt.rootBlkHash, tt.rootBlkHeight)
+			bp, _ := DeserializeBlockPool(tt.serializedBp, CreateBlock(hash.Hash(tt.rootBlkHash), nil, tt.rootBlkHeight))
 			bp.AddBlock(tt.newBlk)
 			assert.Equal(t, hash.Hash(tt.expectedLIBHash).String(), getKey(bp.root))
 			assert.Equal(t, hash.Hash(tt.expectedTailBlockHash).String(), bp.GetHighestBlock().GetHash().String())
@@ -443,7 +442,7 @@ func TestBlockPool_SetRootBlock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := DeserializeBlockPool(tt.serializedBp, tt.rootBlkHash, 0)
+			bp, _ := DeserializeBlockPool(tt.serializedBp, CreateBlock(hash.Hash(tt.rootBlkHash), nil, 0))
 			node, ok := bp.blkCache.Get(hash.Hash(tt.newRootBlkHash).String())
 			assert.True(t, ok)
 			bp.UpdateRootBlock(node.(*common.TreeNode).GetValue().(*block.Block))

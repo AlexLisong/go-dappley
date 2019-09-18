@@ -72,7 +72,7 @@ func TestChain_GetBlockByHash(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, tt.libBlkHash, tt.libBlkHeight)
+			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight))
 			db := &mocks.Storage{}
 			for _, blk := range tt.blocksInDb {
 				db.On("Get", []byte(blk.GetHash())).Return(blk.Serialize(), nil)
@@ -150,7 +150,7 @@ func TestChain_GetBlockByHeight(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, tt.libBlkHash, tt.libBlkHeight)
+			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight))
 			db := &mocks.Storage{}
 			for _, blk := range tt.blocksInDb {
 				db.On("Get", util.UintToHex(blk.GetHeight())).Return([]byte(blk.GetHash()), nil)
@@ -160,16 +160,17 @@ func TestChain_GetBlockByHeight(t *testing.T) {
 				func(hash hash.Hash) bool {
 					return true
 				})).Return(nil, errors.New("Error"))
+			db.On("Put", mock.Anything, mock.Anything).Return(nil)
 
 			policy := &mocks.LIBPolicy{}
 			policy.On("GetMinConfirmationNum").Return(3)
 
 			bc := NewChain(
-				bp.GetHighestBlock(),
 				blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight),
 				db,
 				policy)
 			bc.forks = bp
+			bc.SetTailBlockHash(bp.GetHighestBlock().GetHash())
 			bc.updateForkHeightCache()
 
 			blk, err := bc.GetBlockByHeight(tt.blkHeight)
@@ -184,8 +185,7 @@ func TestChain_AddBlock(t *testing.T) {
 	tests := []struct {
 		name                  string
 		serializedBp          string
-		libBlkHash            string
-		libBlkHeight          uint64
+		libBlk                *block.Block
 		libMinNumOfBlocks     int
 		blocksInDb            []*block.Block
 		newBlk                *block.Block
@@ -196,10 +196,32 @@ func TestChain_AddBlock(t *testing.T) {
 		expectedForkHashes    []string
 	}{
 		{
+			"Empty Blockpool",
+			"",
+			blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+			3,
+			[]*block.Block{
+				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
+				blockchain.CreateBlock(hash.Hash("b"), hash.Hash("a"), 8),
+				blockchain.CreateBlock(hash.Hash("c"), hash.Hash("b"), 9),
+				blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+			},
+			blockchain.CreateBlock(hash.Hash("2"), hash.Hash("1"), 11),
+			nil,
+			"2",
+			"1",
+			[]*block.Block{
+				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
+				blockchain.CreateBlock(hash.Hash("b"), hash.Hash("a"), 8),
+				blockchain.CreateBlock(hash.Hash("c"), hash.Hash("b"), 9),
+				blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+			},
+			[]string{"1", "2"},
+		},
+		{
 			"Add Block To Tail",
 			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
-			"1",
-			10,
+			blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
 			3,
 			[]*block.Block{
 				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
@@ -223,8 +245,7 @@ func TestChain_AddBlock(t *testing.T) {
 		{
 			"Add orphan block",
 			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
-			"1",
-			10,
+			blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
 			3,
 			[]*block.Block{
 				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
@@ -247,8 +268,7 @@ func TestChain_AddBlock(t *testing.T) {
 		{
 			"Add a low block",
 			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
-			"1",
-			10,
+			blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
 			3,
 			[]*block.Block{
 				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
@@ -271,8 +291,7 @@ func TestChain_AddBlock(t *testing.T) {
 		{
 			"Link an orphan to chain",
 			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 14^11#12",
-			"1",
-			10,
+			blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
 			3,
 			[]*block.Block{
 				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
@@ -296,8 +315,7 @@ func TestChain_AddBlock(t *testing.T) {
 		{
 			"Link a long orphan to chain",
 			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 14^11#12, 12#13",
-			"1",
-			10,
+			blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
 			3,
 			[]*block.Block{
 				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
@@ -324,18 +342,18 @@ func TestChain_AddBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			//Prepare blockchain
-			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, tt.libBlkHash, tt.libBlkHeight)
+			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, tt.libBlk)
 			db := storage.NewRamStorage()
 
 			libPolicy := &mocks.LIBPolicy{}
 			libPolicy.On("GetMinConfirmationNum").Return(tt.libMinNumOfBlocks)
 
 			bc := NewChain(
-				bp.GetHighestBlock(),
-				blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight),
+				tt.libBlk,
 				db,
 				libPolicy)
 			bc.forks = bp
+			bc.SetTailBlockHash(bp.GetHighestBlock().GetHash())
 
 			for _, blk := range tt.blocksInDb {
 				bc.AddBlockToDb(blk)
