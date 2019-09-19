@@ -246,7 +246,7 @@ func (bm *BlockchainManager) MergeFork(forkBlks []*block.Block, forkParentHash h
 		}
 
 		ctx := BlockContext{Block: forkBlks[i], UtxoIndex: utxo, State: scState}
-		err = bm.blockchain.AddBlockContextToTail(&ctx)
+		err = bm.blockchain.AddBlockWithContext(&ctx)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error":  err,
@@ -334,7 +334,6 @@ func RevertUtxoAndScStateAtBlockHash(db storage.Storage, bc *Blockchain, hash ha
 	// in the block, until the block hash matches.
 	for {
 		block, err := bci.Next()
-
 		if bytes.Compare(block.GetHash(), hash) == 0 {
 			break
 		}

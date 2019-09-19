@@ -159,7 +159,7 @@ func (b *Block) Serialize() []byte {
 	}
 	logger.WithFields(logger.Fields{
 		"size": len(rawBytes),
-	}).Info("Block: Serialize Block!")
+	}).Debug("Block: Serialize Block!")
 	return rawBytes
 }
 

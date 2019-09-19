@@ -53,7 +53,7 @@ func TestBlockchain_RollbackToABlockWithTransactions(t *testing.T) {
 		cbtx := transaction.NewCoinbaseTX(coinbaseAddr, "", bc.GetMaxHeight(), common.NewAmount(0))
 		b := block.NewBlock([]*transaction.Transaction{&cbtx}, tailBlk, coinbaseAddr.String())
 		b.SetHash(lblock.CalculateHash(b))
-		bc.AddBlockContextToTail(PrepareBlockContext(bc, b))
+		bc.AddBlockWithContext(PrepareBlockContext(bc, b))
 	}
 
 	//generate 5 txs that has dependency relationships like the graph below
@@ -81,13 +81,13 @@ func TestBlockchain_RollbackToABlockWithTransactions(t *testing.T) {
 	cbtx := transaction.NewCoinbaseTX(coinbaseAddr, "", bc.GetMaxHeight(), common.NewAmount(0))
 	b := block.NewBlock([]*transaction.Transaction{&cbtx, &txs[0]}, tailBlk, "16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
 	b.SetHash(lblock.CalculateHash(b))
-	bc.AddBlockContextToTail(PrepareBlockContext(bc, b))
+	bc.AddBlockWithContext(PrepareBlockContext(bc, b))
 
 	//add block 5 with tx1
 	tailBlk, _ = bc.GetTailBlock()
 	b = block.NewBlock([]*transaction.Transaction{&cbtx, &txs[1]}, tailBlk, "16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
 	b.SetHash(lblock.CalculateHash(b))
-	bc.AddBlockContextToTail(PrepareBlockContext(bc, b))
+	bc.AddBlockWithContext(PrepareBlockContext(bc, b))
 
 	//find the hash at height 3
 	blk, err := bc.GetBlockByHeight(3)

@@ -5,7 +5,6 @@ import (
 	"github.com/dappley/go-dappley/common/hash"
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/blockchain"
-	"github.com/dappley/go-dappley/core/transaction"
 	"github.com/dappley/go-dappley/util"
 	"github.com/hashicorp/golang-lru"
 	logger "github.com/sirupsen/logrus"
@@ -29,20 +28,21 @@ type Chain struct {
 	forkHash  *lru.Cache //key: block height; value: block hash
 }
 
-func NewChain(LIBBlk *block.Block, db Storage, policy LIBPolicy) *Chain {
+func NewChain(genesis *block.Block, db Storage, policy LIBPolicy) *Chain {
 
-	if LIBBlk == nil {
+	if genesis == nil {
 		return nil
 	}
 
 	chain := &Chain{
-		bc:        blockchain.NewBlockchain(LIBBlk.GetHash(), LIBBlk.GetHash()),
-		forks:     blockchain.NewBlockPool(LIBBlk),
+		bc:        blockchain.NewBlockchain(genesis.GetHash(), genesis.GetHash()),
+		forks:     blockchain.NewBlockPool(genesis),
 		db:        db,
 		LIBPolicy: policy,
 	}
 
 	chain.forkHash, _ = lru.New(policy.GetMinConfirmationNum() + 1)
+	chain.AddBlockToDb(genesis)
 	return chain
 }
 
@@ -164,6 +164,16 @@ func (bc *Chain) AddBlock(blk *block.Block) error {
 		return ErrBlockHeightTooLow
 	}
 
+	blockLogger := logger.WithFields(logger.Fields{
+		"new_blk_height":           blk.GetHeight(),
+		"new_blk_hash":             blk.GetHash().String(),
+		"new_blk_num_of_tx":        len(blk.GetTransactions()),
+		"lib_hash_before":          bc.GetLIBHash(),
+		"lib_height_before":        bc.GetLIBHeight(),
+		"tail_blk_hash_before":     bc.GetTailBlockHash(),
+		"blockchain_height_before": bc.GetMaxHeight(),
+	})
+
 	oldTailBlkhash := bc.GetTailBlockHash()
 
 	bc.forks.AddBlock(blk)
@@ -174,6 +184,13 @@ func (bc *Chain) AddBlock(blk *block.Block) error {
 	}
 
 	bc.updateBlockchainInfo()
+
+	blockLogger.WithFields(logger.Fields{
+		"lib_hash_after":          bc.GetLIBHash(),
+		"lib_height_after":        bc.GetLIBHeight(),
+		"tail_blk_hash_after":     bc.GetTailBlockHash(),
+		"blockchain_height_after": bc.GetMaxHeight(),
+	}).Info("Blockchain: added a new block")
 	return nil
 }
 
@@ -292,14 +309,7 @@ func (bc *Chain) AddBlockToDb(blk *block.Block) error {
 		logger.WithError(err).Warn("Blockchain: failed to index the blk by blk height in database!")
 		return err
 	}
-	// add transaction journals
-	for _, tx := range blk.GetTransactions() {
-		err = transaction.PutTxJournal(*tx, bc.db)
-		if err != nil {
-			logger.WithError(err).Warn("Blockchain: failed to add blk transaction journals into database!")
-			return err
-		}
-	}
+
 	return nil
 }
 
@@ -309,19 +319,19 @@ func (bc *Chain) IsBlockTooLow(blk *block.Block) bool {
 
 func (bc *Chain) Iterator() *Chain {
 	return &Chain{
-		bc: bc.bc,
-		db: bc.db,
+		bc:    bc.bc,
+		db:    bc.db,
+		forks: bc.forks,
 	}
 }
 
 func (bc *Chain) Next() (*block.Block, error) {
 	var blk *block.Block
-	encodedBlock, err := bc.db.Get(bc.GetTailBlockHash())
+
+	blk, err := bc.GetTailBlock()
 	if err != nil {
 		return nil, err
 	}
-
-	blk = block.Deserialize(encodedBlock)
 
 	bc.bc.SetTailBlockHash(blk.GetPrevHash())
 

@@ -116,7 +116,7 @@ func TestBlockchain_HigherThanBlockchainTestLower(t *testing.T) {
 	tailblk, _ := bc.GetTailBlock()
 	blk := ltransaction.GenerateBlockWithCbtx(addr, tailblk)
 	blk.SetHeight(1)
-	bc.AddBlockContextToTail(PrepareBlockContext(bc, blk))
+	bc.AddBlockWithContext(PrepareBlockContext(bc, blk))
 
 	assert.False(t, blk.GetHeight() > bc.GetMaxHeight())
 
@@ -133,7 +133,7 @@ func TestBlockchain_IsInBlockchain(t *testing.T) {
 	bc := CreateBlockchain(addr, s, policy, transactionpool.NewTransactionPool(nil, 128), nil, 100000)
 
 	blk := core.GenerateUtxoMockBlockWithoutInputs()
-	bc.AddBlockContextToTail(PrepareBlockContext(bc, blk))
+	bc.AddBlockWithContext(PrepareBlockContext(bc, blk))
 
 	isFound := bc.IsInBlockchain([]byte("hash"))
 	assert.True(t, isFound)
@@ -191,7 +191,7 @@ func TestBlockchain_AddBlockToTail(t *testing.T) {
 	// Flush invoked in AddBlockToTail twice
 	db.On("Flush").Return(nil).Twice()
 
-	err := bc.AddBlockContextToTail(PrepareBlockContext(bc, genesis))
+	err := bc.AddBlockWithContext(PrepareBlockContext(bc, genesis))
 
 	// Expect batch write was used
 	db.AssertCalled(t, "EnableBatch")
@@ -212,7 +212,7 @@ func TestBlockchain_AddBlockToTail(t *testing.T) {
 	blk.SetHash([]byte("hash1"))
 
 	blk.SetHeight(1)
-	err = bc.AddBlockContextToTail(PrepareBlockContext(bc, blk))
+	err = bc.AddBlockWithContext(PrepareBlockContext(bc, blk))
 
 	// Expect the coinbase tx to go through
 	assert.Equal(t, nil, err)
@@ -252,7 +252,7 @@ func BenchmarkBlockchain_AddBlockToTail(b *testing.B) {
 		b := block.NewBlock(txs, tailBlk, "")
 		b.SetHash(lblock.CalculateHash(b))
 		state := scState.LoadScStateFromDatabase(bc.GetDb())
-		bc.AddBlockContextToTail(&BlockContext{Block: b, UtxoIndex: utxo, State: state})
+		bc.AddBlockWithContext(&BlockContext{Block: b, UtxoIndex: utxo, State: state})
 	}
 }
 
@@ -269,7 +269,7 @@ func GenerateMockBlockchain(size int) *Blockchain {
 		tailBlk, _ := bc.GetTailBlock()
 		b := block.NewBlock([]*transaction.Transaction{core.MockTransaction()}, tailBlk, "16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
 		b.SetHash(lblock.CalculateHash(b))
-		bc.AddBlockContextToTail(PrepareBlockContext(bc, b))
+		bc.AddBlockWithContext(PrepareBlockContext(bc, b))
 	}
 	return bc
 }

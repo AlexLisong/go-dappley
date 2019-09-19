@@ -44,10 +44,9 @@ import (
 )
 
 var (
-	ErrPrevHashVerifyFailed    = errors.New("prevhash verify failed")
-	ErrTransactionNotFound     = errors.New("transaction not found")
 	ErrTransactionVerifyFailed = errors.New("transaction verification failed")
-	ErrRewardTxVerifyFailed    = errors.New("Verify reward transaction failed")
+	ErrBlockExists             = errors.New("block already exists in blockchain")
+	ErrAddBlockFailed          = errors.New("add block to blockchain failed")
 	ErrProducerNotEnough       = errors.New("producer number is less than ConsensusSize")
 	// DefaultGasPrice default price of per gas
 	DefaultGasPrice uint64 = 1
@@ -81,11 +80,11 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 	}
 	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoCache())
 	utxoIndex.UpdateUtxoState(genesis.GetTransactions())
-	scState := scState.NewScState()
-	err := bc.AddBlockContextToTail(&BlockContext{Block: genesis, UtxoIndex: utxoIndex, State: scState})
-	if err != nil {
-		logger.Panic("CreateBlockchain: failed to add genesis block!")
-	}
+	//scState := scState.NewScState()
+	//err := bc.AddBlockWithContext(&BlockContext{Block: genesis, UtxoIndex: utxoIndex, State: scState})
+	//if err != nil {
+	//	logger.WithFields(logger.Fields{}).WithError(err).Panic("CreateBlockchain: failed to add genesis block!")
+	//}
 	return bc
 }
 
@@ -177,43 +176,41 @@ func (bc *Blockchain) GetState() blockchain.BlockchainState {
 	return bc.bc.bc.GetState()
 }
 
-func (bc *Blockchain) AddBlockContextToTail(ctx *BlockContext) error {
+func (bc *Blockchain) AddBlockWithContext(ctx *BlockContext) error {
 	// Atomically set tail block hash and update UTXO index in db
 	bc.mutex.Lock()
 	defer bc.mutex.Unlock()
 
-	tailBlockHash := bc.GetTailBlockHash()
-	if ctx.Block.GetHeight() != 0 && bytes.Compare(ctx.Block.GetPrevHash(), tailBlockHash) != 0 {
-		return ErrPrevHashVerifyFailed
+	if bc.bc.IsInBlockchain(ctx.Block.GetHash()) {
+		return ErrBlockExists
 	}
 
 	blockLogger := logger.WithFields(logger.Fields{
-		"height": ctx.Block.GetHeight(),
-		"hash":   ctx.Block.GetHash().String(),
+		"num_txs_in_txpol_before": bc.GetTxPool().GetNumOfTxInPool(),
 	})
 
 	bcTemp := bc.DeepCopy()
 	tailBlk, _ := bc.GetTailBlock()
+	bcTemp.runScheduleEvents(ctx, tailBlk)
 
 	bcTemp.db.EnableBatch()
 	defer bcTemp.db.DisableBatch()
 
-	err := bcTemp.setTailBlockHash(ctx.Block.GetHash())
+	//update Blockchain
+	err := bc.bc.AddBlock(ctx.Block)
 	if err != nil {
-		blockLogger.Error("Blockchain: failed to set tail block hash!")
-		return err
+		blockLogger.WithError(err).Warn("Blockchain: Add block failed")
+		return ErrAddBlockFailed
 	}
 
-	numTxBeforeExe := bc.GetTxPool().GetNumOfTxInPool()
-
-	bcTemp.runScheduleEvents(ctx, tailBlk)
+	//update UTXOIndex
 	err = ctx.UtxoIndex.Save()
 	if err != nil {
 		blockLogger.Warn("Blockchain: failed to save utxo to database.")
 		return err
 	}
 
-	//Remove transactions in current transaction pool
+	//update Transaction pool
 	bcTemp.GetTxPool().CleanUpMinedTxs(ctx.Block.GetTransactions())
 	bcTemp.GetTxPool().ResetPendingTransactions()
 	err = bcTemp.GetTxPool().SaveToDatabase(bc.db)
@@ -223,18 +220,14 @@ func (bc *Blockchain) AddBlockContextToTail(ctx *BlockContext) error {
 		return err
 	}
 
-	logger.WithFields(logger.Fields{
-		"num_txs_before_add_block":    numTxBeforeExe,
-		"num_txs_after_update_txpool": bc.GetTxPool().GetNumOfTxInPool(),
-	}).Info("Blockchain : update tx pool")
-
-	err = bcTemp.AddBlockToDb(ctx.Block)
+	//update smart contract state
+	err = ctx.State.Save(bc.db, ctx.Block.GetHash())
 	if err != nil {
-		blockLogger.Warn("Blockchain: failed to add block to database.")
+		blockLogger.Warn("Blockchain: failed to save scState to database.")
 		return err
 	}
 
-	bcTemp.updateLIB(ctx.Block.GetHeight())
+	bc.updateTransactionJournal(tailBlk)
 
 	// Flush batch changes to storage
 	err = bcTemp.db.Flush()
@@ -242,19 +235,37 @@ func (bc *Blockchain) AddBlockContextToTail(ctx *BlockContext) error {
 		blockLogger.Error("Blockchain: failed to update tail block hash and UTXO index!")
 		return err
 	}
-	ctx.State.Save(bc.db, ctx.Block.GetHash())
+
 	// Assign changes to receiver
 	*bc = *bcTemp
 
-	poolsize := 0
-	if bc.txPool != nil {
-		poolsize = bc.txPool.GetNumOfTxInPool()
-	}
-
 	blockLogger.WithFields(logger.Fields{
-		"numOfTx":  len(ctx.Block.GetTransactions()),
-		"poolSize": poolsize,
-	}).Info("Blockchain: added a new block to tail.")
+		"num_txs_in_txpol_after": bc.GetTxPool().GetNumOfTxInPool(),
+	}).Info("Blockchain: added a new block")
+
+	return nil
+}
+
+func (bc *Blockchain) updateTransactionJournal(oldTailBlk *block.Block) error {
+
+	var err error
+	currBlk := oldTailBlk
+	for currBlk.GetHeight() <= bc.GetMaxHeight() {
+		// add transaction journals
+		currBlk, err = bc.GetBlockByHeight(currBlk.GetHeight() + 1)
+		if err != nil {
+			return err
+		}
+
+		for _, tx := range currBlk.GetTransactions() {
+			err := transaction.PutTxJournal(*tx, bc.db)
+			if err != nil {
+				logger.WithError(err).Warn("Blockchain: failed to add blk transaction journals into database!")
+				return err
+			}
+		}
+
+	}
 
 	return nil
 }

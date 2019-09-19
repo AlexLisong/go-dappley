@@ -36,7 +36,7 @@ func GenerateMockBlockchainWithCoinbaseTxOnly(size int) *Blockchain {
 		cbtx := transaction.NewCoinbaseTX(addr, "", bc.GetMaxHeight()+1, common.NewAmount(0))
 		b := block.NewBlock([]*transaction.Transaction{&cbtx}, tailBlk, "16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
 		b.SetHash(lblock.CalculateHash(b))
-		bc.AddBlockContextToTail(PrepareBlockContext(bc, b))
+		bc.AddBlockWithContext(PrepareBlockContext(bc, b))
 	}
 	return bc
 }
@@ -48,6 +48,6 @@ func AddBlockToGeneratedBlockchain(bc *Blockchain, numOfBlks int) {
 		cbtx := transaction.NewCoinbaseTX(addr, "", bc.GetMaxHeight()+1, common.NewAmount(0))
 		b := block.NewBlock([]*transaction.Transaction{&cbtx}, tailBlk, "16PencPNnF8CiSx2EBGEd1axhf7vuHCouj")
 		b.SetHash(lblock.CalculateHash(b))
-		bc.AddBlockContextToTail(PrepareBlockContext(bc, b))
+		bc.AddBlockWithContext(PrepareBlockContext(bc, b))
 	}
 }

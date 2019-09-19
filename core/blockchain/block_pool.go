@@ -60,7 +60,7 @@ func NewBlockPool(rootBlk *block.Block) *BlockPool {
 	return pool
 }
 
-//AddBlock adds the block to the forks and return the parent hash of the fork that contains the input block
+//AddBlockWithContext adds the block to the forks and return the parent hash of the fork that contains the input block
 func (pool *BlockPool) AddBlock(blk *block.Block) {
 
 	if blk == nil {

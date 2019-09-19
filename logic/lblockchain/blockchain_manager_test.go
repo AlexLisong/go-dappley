@@ -39,11 +39,11 @@ func TestBlockChainManager_NumForks(t *testing.T) {
 	b6 := block.NewBlockWithRawInfo(nil, b3.GetHash(), 6, 0, 3, nil)
 	b6.SetHash(lblock.CalculateHash(b6))
 
-	err = bc.AddBlockContextToTail(&BlockContext{Block: b1, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
+	err = bc.AddBlockWithContext(&BlockContext{Block: b1, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
 	require.Nil(t, err)
-	err = bc.AddBlockContextToTail(&BlockContext{Block: b3, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
+	err = bc.AddBlockWithContext(&BlockContext{Block: b3, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
 	require.Nil(t, err)
-	err = bc.AddBlockContextToTail(&BlockContext{Block: b6, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
+	err = bc.AddBlockWithContext(&BlockContext{Block: b6, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
 	require.Nil(t, err)
 
 	// create first fork of height 3
@@ -126,7 +126,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 		policy.On("GetMinConfirmationNum").Return(3)
 		bc := CreateBlockchain(genesisAddr, storage.NewRamStorage(), policy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
 		for _, blk := range blks {
-			err := bc.AddBlockContextToTail(PrepareBlockContext(bc, blk))
+			err := bc.AddBlockWithContext(PrepareBlockContext(bc, blk))
 			if err != nil {
 				logger.Fatal("TestGetUTXOIndexAtBlockHash: cannot add the blocks to blockchain.")
 			}
@@ -261,7 +261,11 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := RevertUtxoAndScStateAtBlockHash(tt.bc.GetDb(), tt.bc, tt.hash)
+			utxoIndex := lutxo.NewUTXOIndex(tt.bc.utxoCache)
+			logger.WithFields(logger.Fields{
+				"normalBlkHash": utxoIndex.GetAllUTXOsByPubKeyHash(acc.GetPubKeyHash()),
+			}).Error(tt.bc.GetTailBlockHash())
+			_, _, err = RevertUtxoAndScStateAtBlockHash(tt.bc.GetDb(), tt.bc, tt.hash)
 			if !assert.Equal(t, tt.err, err) {
 				return
 			}
@@ -281,8 +285,8 @@ func TestCopyAndRevertUtxos(t *testing.T) {
 	blk1 := core.GenerateUtxoMockBlockWithoutInputs() // contains 2 UTXOs for address1
 	blk2 := core.GenerateUtxoMockBlockWithInputs()    // contains tx that transfers address1's UTXOs to address2 with a change
 
-	bc.AddBlockContextToTail(PrepareBlockContext(bc, blk1))
-	bc.AddBlockContextToTail(PrepareBlockContext(bc, blk2))
+	bc.AddBlockWithContext(PrepareBlockContext(bc, blk1))
+	bc.AddBlockWithContext(PrepareBlockContext(bc, blk2))
 
 	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoCache())
 

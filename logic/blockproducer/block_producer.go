@@ -279,7 +279,7 @@ func (bp *BlockProducer) addBlockToBlockchain(ctx *lblockchain.BlockContext) {
 		return
 	}
 
-	err := bp.bm.Getblockchain().AddBlockContextToTail(ctx)
+	err := bp.bm.Getblockchain().AddBlockWithContext(ctx)
 	if err != nil {
 		logger.Warn(err)
 		return
