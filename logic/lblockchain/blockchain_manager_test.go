@@ -187,8 +187,8 @@ func TestCopyAndRevertUtxos(t *testing.T) {
 	policy.On("GetMinConfirmationNum").Return(3)
 	bc := CreateBlockchain(coinbaseAddr, db, policy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
 
-	blk1 := core.GenerateUtxoMockBlockWithoutInputs() // contains 2 UTXOs for address1
-	blk2 := core.GenerateUtxoMockBlockWithInputs()    // contains tx that transfers address1's UTXOs to address2 with a change
+	blk1 := core.GenerateUtxoMockBlockWithoutInputs(bc.GetTailBlockHash()) // contains 2 UTXOs for address1
+	blk2 := core.GenerateUtxoMockBlockWithInputs()                         // contains tx that transfers address1's UTXOs to address2 with a change
 
 	bc.AddBlockWithContext(PrepareBlockContext(bc, blk1))
 	bc.AddBlockWithContext(PrepareBlockContext(bc, blk2))

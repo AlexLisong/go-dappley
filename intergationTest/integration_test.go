@@ -24,6 +24,8 @@ import (
 
 	"github.com/dappley/go-dappley/common/deadline"
 	"github.com/dappley/go-dappley/logic/blockproducer/mocks"
+	bcmocks "github.com/dappley/go-dappley/logic/lblockchain/mocks"
+
 	blockchainMock "github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"github.com/stretchr/testify/mock"
 
@@ -198,7 +200,10 @@ func TestSendToInvalidAddress(t *testing.T) {
 
 	node := network.FakeNodeWithPidAndAddr(store, "test", "test")
 	//create a blockchain
-	bc, err := logic.CreateBlockchain(addr1, store, nil, transactionpool.NewTransactionPool(node, 128), nil, 1000000)
+	policy := &bcmocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+
+	bc, err := logic.CreateBlockchain(addr1, store, policy, transactionpool.NewTransactionPool(node, 128), nil, 1000000)
 	assert.Nil(t, err)
 	assert.NotNil(t, bc)
 
@@ -245,7 +250,9 @@ func TestSendInsufficientBalance(t *testing.T) {
 	node := network.FakeNodeWithPidAndAddr(store, "test", "test")
 
 	//create a blockchain
-	bc, err := logic.CreateBlockchain(addr1, store, nil, transactionpool.NewTransactionPool(node, 128), nil, 1000000)
+	policy := &bcmocks.LIBPolicy{}
+	policy.On("GetMinConfirmationNum").Return(3)
+	bc, err := logic.CreateBlockchain(addr1, store, policy, transactionpool.NewTransactionPool(node, 128), nil, 1000000)
 	assert.Nil(t, err)
 	assert.NotNil(t, bc)
 
@@ -495,7 +502,9 @@ func TestAddBalanceWithInvalidAddress(t *testing.T) {
 			addr := account.NewAddress("dG6HhzSdA5m7KqvJNszVSf8i5f4neAteSs")
 			node := network.FakeNodeWithPidAndAddr(db, "a", "b")
 			// Create a blockchain
-			bc, err := logic.CreateBlockchain(addr, db, nil, transactionpool.NewTransactionPool(node, 128), nil, 1000000)
+			policy := &bcmocks.LIBPolicy{}
+			policy.On("GetMinConfirmationNum").Return(3)
+			bc, err := logic.CreateBlockchain(addr, db, policy, transactionpool.NewTransactionPool(node, 128), nil, 1000000)
 			assert.Nil(t, err)
 
 			_, _, err = logic.SendFromMiner(account.NewAddress(tc.address), common.NewAmount(8), bc)
@@ -744,7 +753,7 @@ func TestUpdate(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 
-	blk := core.GenerateUtxoMockBlockWithoutInputs()
+	blk := core.GenerateUtxoMockBlockWithoutInputs(nil)
 	utxoIndex := lutxo.NewUTXOIndex(utxo.NewUTXOCache(db))
 	utxoIndex.UpdateUtxoState(blk.GetTransactions())
 	utxoIndex.Save()

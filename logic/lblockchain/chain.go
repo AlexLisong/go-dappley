@@ -180,6 +180,7 @@ func (bc *Chain) AddBlock(blk *block.Block) error {
 
 	newTailBlk := bc.forks.GetHighestBlock()
 	if newTailBlk.GetHash().Equals(oldTailBlkhash) {
+		blockLogger.Info("Chain: added a new block to forks")
 		return nil
 	}
 
@@ -190,7 +191,7 @@ func (bc *Chain) AddBlock(blk *block.Block) error {
 		"lib_height_after":        bc.GetLIBHeight(),
 		"tail_blk_hash_after":     bc.GetTailBlockHash(),
 		"blockchain_height_after": bc.GetMaxHeight(),
-	}).Info("Blockchain: added a new block")
+	}).Info("Chain: added a new block to tail")
 	return nil
 }
 

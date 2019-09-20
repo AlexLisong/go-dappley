@@ -19,6 +19,7 @@
 package core
 
 import (
+	"github.com/dappley/go-dappley/common/hash"
 	"time"
 
 	"github.com/dappley/go-dappley/core/transaction"
@@ -105,15 +106,15 @@ func MockTxOutputs() []transactionbase.TXOutput {
 	}
 }
 
-func GenerateUtxoMockBlockWithoutInputs() *block.Block {
+func GenerateUtxoMockBlockWithoutInputs(prevHash hash.Hash) *block.Block {
 
 	t1 := MockUtxoTransactionWithoutInputs()
 	return block.NewBlockWithRawInfo(
 		[]byte("hash"),
-		nil,
+		prevHash,
 		1,
 		time.Now().Unix(),
-		0,
+		1,
 		[]*transaction.Transaction{t1},
 	)
 }
@@ -126,7 +127,7 @@ func GenerateUtxoMockBlockWithInputs() *block.Block {
 		[]byte("hash"),
 		1,
 		time.Now().Unix(),
-		1,
+		2,
 		[]*transaction.Transaction{t1},
 	)
 

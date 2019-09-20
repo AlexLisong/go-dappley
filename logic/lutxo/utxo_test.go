@@ -100,7 +100,7 @@ func TestUpdate_Failed(t *testing.T) {
 	db.On("Put", mock.Anything, mock.Anything).Return(simulatedFailure)
 	db.On("Get", mock.Anything, mock.Anything).Return(nil, nil)
 
-	blk := core.GenerateUtxoMockBlockWithoutInputs()
+	blk := core.GenerateUtxoMockBlockWithoutInputs(nil)
 	utxoIndex := NewUTXOIndex(utxo.NewUTXOCache(db))
 	utxoIndex.UpdateUtxoState(blk.GetTransactions())
 	err := utxoIndex.Save()

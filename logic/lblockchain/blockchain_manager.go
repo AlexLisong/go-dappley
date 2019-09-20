@@ -333,6 +333,11 @@ func RevertUtxoAndScStateAtBlockHash(db storage.Storage, bc *Blockchain, hash ha
 	// in the block, until the block hash matches.
 	for {
 		block, err := bci.Next()
+		logger.WithFields(logger.Fields{
+			"currBlkHeight":      block.GetHeight(),
+			"currBlkHash":        block.GetHash(),
+			"rollbackTargetHash": hash,
+		}).Error("GetNextBlock")
 		if bytes.Compare(block.GetHash(), hash) == 0 {
 			break
 		}
@@ -342,6 +347,11 @@ func RevertUtxoAndScStateAtBlockHash(db storage.Storage, bc *Blockchain, hash ha
 		}
 
 		if len(block.GetPrevHash()) == 0 {
+			logger.WithFields(logger.Fields{
+				"currBlkHeight":      block.GetHeight(),
+				"currBlkHash":        block.GetHash(),
+				"rollbackTargetHash": hash,
+			}).Error("Reached the beginning of the blockchain")
 			return nil, nil, ErrBlockDoesNotExist
 		}
 
