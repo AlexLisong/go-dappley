@@ -80,6 +80,7 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 	}
 	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoCache())
 	utxoIndex.UpdateUtxoState(genesis.GetTransactions())
+	utxoIndex.Save()
 	//scState := scState.NewScState()
 	//err := bc.AddBlockWithContext(&BlockContext{Block: genesis, UtxoIndex: utxoIndex, State: scState})
 	//if err != nil {
