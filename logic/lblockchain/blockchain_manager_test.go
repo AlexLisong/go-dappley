@@ -1,7 +1,6 @@
 package lblockchain
 
 import (
-	"github.com/dappley/go-dappley/core/blockchain"
 	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"testing"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/dappley/go-dappley/common/hash"
 	"github.com/dappley/go-dappley/core"
 	"github.com/dappley/go-dappley/core/block"
-	"github.com/dappley/go-dappley/core/scState"
 	"github.com/dappley/go-dappley/core/transaction"
 	"github.com/dappley/go-dappley/core/transactionbase"
 	"github.com/dappley/go-dappley/core/utxo"
@@ -19,102 +17,9 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/dappley/go-dappley/core/account"
 	"github.com/dappley/go-dappley/storage"
 )
-
-func TestBlockChainManager_NumForks(t *testing.T) {
-	// create BlockChain
-	policy := &mocks.LIBPolicy{}
-	policy.On("GetMinConfirmationNum").Return(3)
-	bc := CreateBlockchain(account.NewAddress(""), storage.NewRamStorage(), policy, transactionpool.NewTransactionPool(nil, 100), nil, 100)
-	blk, err := bc.GetTailBlock()
-	require.Nil(t, err)
-
-	b1 := block.NewBlockWithRawInfo(nil, blk.GetHash(), 1, 0, 1, nil)
-	b3 := block.NewBlockWithRawInfo(nil, b1.GetHash(), 3, 0, 2, nil)
-	b3.SetHash(lblock.CalculateHash(b3))
-	b6 := block.NewBlockWithRawInfo(nil, b3.GetHash(), 6, 0, 3, nil)
-	b6.SetHash(lblock.CalculateHash(b6))
-
-	err = bc.AddBlockWithContext(&BlockContext{Block: b1, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
-	require.Nil(t, err)
-	err = bc.AddBlockWithContext(&BlockContext{Block: b3, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
-	require.Nil(t, err)
-	err = bc.AddBlockWithContext(&BlockContext{Block: b6, UtxoIndex: lutxo.NewUTXOIndex(nil), State: scState.NewScState()})
-	require.Nil(t, err)
-
-	// create first fork of height 3
-	b2 := block.NewBlockWithRawInfo(nil, b1.GetHash(), 2, 0, 2, nil)
-	b2.SetHash(lblock.CalculateHash(b2))
-
-	b4 := block.NewBlockWithRawInfo(nil, b2.GetHash(), 4, 0, 3, nil)
-	b4.SetHash(lblock.CalculateHash(b4))
-
-	b5 := block.NewBlockWithRawInfo(nil, b2.GetHash(), 5, 0, 3, nil)
-	b5.SetHash(lblock.CalculateHash(b5))
-
-	b7 := block.NewBlockWithRawInfo(nil, b4.GetHash(), 7, 0, 4, nil)
-	b7.SetHash(lblock.CalculateHash(b7))
-
-	/*
-		              b1
-		            b2  b3
-		          b4 b5  b6
-		        b7
-			BlockChain:  Genesis - b1 - b3 - b6
-	*/
-
-	bp := blockchain.NewBlockPool(nil)
-	bcm := NewBlockchainManager(bc, bp, nil, nil)
-
-	bp.AddBlock(b2)
-	require.Equal(t, 1, testGetNumForkHeads(bp))
-	bp.AddBlock(b4)
-	require.Equal(t, 1, testGetNumForkHeads(bp))
-	bp.AddBlock(b5)
-	require.Equal(t, 1, testGetNumForkHeads(bp))
-	bp.AddBlock(b7)
-	require.Equal(t, 1, testGetNumForkHeads(bp))
-
-	// adding block that is not connected to BlockChain should be ignored
-	b8 := block.NewBlockWithRawInfo(nil, []byte{9}, 8, 0, 4, nil)
-	b8.SetHash(lblock.CalculateHash(b8))
-	bp.AddBlock(b8)
-	require.Equal(t, 2, testGetNumForkHeads(bp))
-
-	numForks, longestFork := bcm.NumForks()
-	require.EqualValues(t, 2, numForks)
-	require.EqualValues(t, 3, longestFork)
-
-	// create a new fork off b6
-	b9 := block.NewBlockWithRawInfo(nil, b6.GetHash(), 9, 0, 4, nil)
-	b9.SetHash(lblock.CalculateHash(b9))
-
-	bp.AddBlock(b9)
-	require.Equal(t, 3, testGetNumForkHeads(bp))
-
-	require.ElementsMatch(t,
-		[]string{b2.GetHash().String(), b8.GetHash().String(), b9.GetHash().String()}, testGetForkHeadHashes(bp))
-
-	numForks, longestFork = bcm.NumForks()
-	require.EqualValues(t, 3, numForks)
-	require.EqualValues(t, 3, longestFork)
-}
-
-func testGetNumForkHeads(bp *blockchain.BlockPool) int {
-	return len(testGetForkHeadHashes(bp))
-}
-
-func testGetForkHeadHashes(bp *blockchain.BlockPool) []string {
-	var hashes []string
-	bp.ForkHeadRange(func(blkHash string, tree *common.TreeNode) {
-		hashes = append(hashes, blkHash)
-	})
-	return hashes
-}
 
 func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	genesisAddr := account.NewAddress("##@@")

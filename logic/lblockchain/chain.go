@@ -343,6 +343,10 @@ func (bc *Chain) IsInBlockchain(hash hash.Hash) bool {
 	return err == nil
 }
 
+func (bc *Chain) GetNumOfForks() int64 {
+	return bc.forks.GetNumOfForks()
+}
+
 func calculateLIBHeight(tailBlkHeight uint64, minConfirmationNum int) uint64 {
 	LIBHeight := uint64(0)
 	if tailBlkHeight > uint64(minConfirmationNum) {

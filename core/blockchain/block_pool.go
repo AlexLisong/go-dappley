@@ -283,6 +283,10 @@ func (pool *BlockPool) linkParent(node *common.TreeNode) {
 	}
 }
 
+func (pool *BlockPool) GetNumOfForks() int64 {
+	return pool.root.NumLeaves() + int64(len(pool.orphans))
+}
+
 func (pool *BlockPool) ForkHeadRange(fn func(blkHash string, tree *common.TreeNode)) {
 	pool.forkHeadsMutex.RLock()
 	defer pool.forkHeadsMutex.RUnlock()

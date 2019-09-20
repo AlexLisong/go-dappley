@@ -233,6 +233,60 @@ func TestBlockPool_GetGetHighestBlockBlock(t *testing.T) {
 	}
 }
 
+func TestBlockPool_GetNumOfForks(t *testing.T) {
+	/*  BLOCK FORK STRUCTURE
+	MAIN FORK:		     1
+				    2        3
+				  8  9     4
+				10	     5 6 7
+
+	*/
+
+	tests := []struct {
+		name               string
+		serializedBp       string
+		rootBlkHash        string
+		expectedNumOfForks int64
+	}{
+		{
+			"Single node",
+			"",
+			"1",
+			1,
+		},
+		{
+			"No Orphan 1",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
+			"1",
+			5,
+		},
+		{
+			"No Orphan 2",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 7#11",
+			"1",
+			5,
+		},
+		{
+			"With Orphan 1",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 7#11, 3^13",
+			"1",
+			6,
+		},
+		{
+			"With Orphan 2",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 7#11, 3^13, 5^15",
+			"1",
+			7,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bp, _ := DeserializeBlockPool(tt.serializedBp, CreateBlock(hash.Hash(tt.rootBlkHash), nil, 0))
+			assert.Equal(t, tt.expectedNumOfForks, bp.GetNumOfForks())
+		})
+	}
+}
+
 func TestBlockPool_AddBlock(t *testing.T) {
 	/*  BLOCK FORK STRUCTURE
 	MAIN FORK:		     1

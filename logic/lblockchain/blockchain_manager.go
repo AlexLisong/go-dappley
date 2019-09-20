@@ -31,7 +31,6 @@ import (
 	"github.com/dappley/go-dappley/logic/lblock"
 	"github.com/dappley/go-dappley/logic/lutxo"
 
-	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/logic/lblockchain/pb"
 	"github.com/dappley/go-dappley/network/networkmodel"
 	"github.com/dappley/go-dappley/storage"
@@ -369,20 +368,9 @@ func RevertUtxoAndScStateAtBlockHash(db storage.Storage, bc *Blockchain, hash ha
 
 /* NumForks returns the number of forks in the BlockPool and the height of the current longest fork */
 func (bm *BlockchainManager) NumForks() (int64, int64) {
-	var numForks, maxHeight int64 = 0, 0
 
-	bm.blockPool.ForkHeadRange(func(blkHash string, tree *common.TreeNode) {
-		rootBlk := tree.GetValue().(*block.Block)
-		_, err := bm.blockchain.GetBlockByHash(rootBlk.GetPrevHash())
-		if err == nil {
-			/* the cached block is rooted in the BlockChain */
-			numForks += tree.NumLeaves()
-			t := tree.Height()
-			if t > maxHeight {
-				maxHeight = t
-			}
-		}
-	})
+	numOfForks := bm.blockchain.bc.GetNumOfForks()
+	maxHeight := bm.blockchain.bc.GetMaxHeight()
 
-	return numForks, maxHeight
+	return numOfForks, int64(maxHeight)
 }
