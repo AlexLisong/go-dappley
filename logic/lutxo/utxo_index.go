@@ -41,6 +41,7 @@ var contractUtxoKey = []byte("contractUtxoKey")
 var (
 	ErrUTXONotFound   = errors.New("utxo not found when trying to remove from cache")
 	ErrTXInputInvalid = errors.New("txInput refers to non-existing transaction")
+	ErrVoutNotFound   = errors.New("vout not found in current transaction")
 )
 
 // UTXOIndex holds all unspent TXOutputs indexed by public key hash.
@@ -48,6 +49,29 @@ type UTXOIndex struct {
 	index map[string]*utxo.UTXOTx
 	cache *utxo.UTXOCache
 	mutex *sync.RWMutex
+}
+
+// generate storage key in database
+func GetStorageKey(txid []byte) []byte {
+	key := "tx_journal_" + string(txid)
+	return []byte(key)
+}
+
+// Returns transaction log data from database
+func GetTxOutput(vin transactionbase.TXInput, db storage.Storage) (transactionbase.TXOutput, error) {
+	key := GetStorageKey(vin.Txid)
+	value, err := db.Get(key)
+	if err != nil {
+		return transactionbase.TXOutput{}, err
+	}
+	txJournal, err := transaction.DeserializeJournal(value)
+	if err != nil {
+		return transactionbase.TXOutput{}, err
+	}
+	if vin.Vout >= len(txJournal.Vout) {
+		return transactionbase.TXOutput{}, ErrVoutNotFound
+	}
+	return txJournal.Vout[vin.Vout], nil
 }
 
 // NewUTXOIndex initializes an UTXOIndex instance
@@ -214,7 +238,7 @@ func (utxos *UTXOIndex) excludeVoutsInTx(tx *transaction.Transaction, db storage
 
 func getTXOutputSpent(in transactionbase.TXInput, db storage.Storage) (transactionbase.TXOutput, int, error) {
 
-	vout, err := transaction.GetTxOutput(in, db)
+	vout, err := GetTxOutput(in, db)
 
 	if err != nil {
 		return transactionbase.TXOutput{}, 0, ErrTXInputInvalid

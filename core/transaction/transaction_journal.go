@@ -18,18 +18,11 @@
 package transaction
 
 import (
-	"errors"
-
 	transactionpb "github.com/dappley/go-dappley/core/transaction/pb"
 	"github.com/dappley/go-dappley/core/transactionbase"
 	transactionbasepb "github.com/dappley/go-dappley/core/transactionbase/pb"
-	"github.com/dappley/go-dappley/storage"
 	"github.com/golang/protobuf/proto"
 	logger "github.com/sirupsen/logrus"
-)
-
-var (
-	ErrVoutNotFound = errors.New("vout not found in current transaction")
 )
 
 // TxJournal refers to transaction log data.
@@ -43,45 +36,6 @@ type TxJournal struct {
 func NewTxJournal(txid []byte, vouts []transactionbase.TXOutput) *TxJournal {
 	txJournal := &TxJournal{txid, vouts}
 	return txJournal
-}
-
-// generate storage key in database
-func getStorageKey(txid []byte) []byte {
-	key := "tx_journal_" + string(txid)
-	return []byte(key)
-}
-
-// Add new log
-func PutTxJournal(tx Transaction, db Storage) error {
-	txJournal := NewTxJournal(tx.ID, tx.Vout)
-	return txJournal.Save(db)
-}
-
-// Returns transaction log data from database
-func GetTxOutput(vin transactionbase.TXInput, db storage.Storage) (transactionbase.TXOutput, error) {
-	key := getStorageKey(vin.Txid)
-	value, err := db.Get(key)
-	if err != nil {
-		return transactionbase.TXOutput{}, err
-	}
-	txJournal, err := DeserializeJournal(value)
-	if err != nil {
-		return transactionbase.TXOutput{}, err
-	}
-	if vin.Vout >= len(txJournal.Vout) {
-		return transactionbase.TXOutput{}, ErrVoutNotFound
-	}
-	return txJournal.Vout[vin.Vout], nil
-}
-
-// Save TxJournal into database
-func (txJournal *TxJournal) Save(db Storage) error {
-	bytes, err := txJournal.SerializeJournal()
-	if err != nil {
-		return err
-	}
-	err = db.Put(getStorageKey(txJournal.Txid), bytes)
-	return err
 }
 
 func (txJournal *TxJournal) SerializeJournal() ([]byte, error) {
