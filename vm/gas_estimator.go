@@ -7,7 +7,6 @@ import (
 
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/transaction"
-	"github.com/dappley/go-dappley/core/utxo"
 	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/ltransaction"
 	"github.com/dappley/go-dappley/logic/lutxo"
@@ -21,7 +20,7 @@ var (
 )
 
 // EstimateGas returns estimated gas value of contract deploy and execution.
-func EstimateGas(tx *transaction.Transaction, tailBlk *block.Block, utxoCache *utxo.UTXOCache, db storage.Storage) (uint64, error) {
+func EstimateGas(tx *transaction.Transaction, tailBlk *block.Block, utxoCache *lutxo.UTXOCache, db storage.Storage) (uint64, error) {
 	utxoIndex := lutxo.NewUTXOIndex(utxoCache)
 	scStorage := lScState.LoadScStateFromDatabase(db)
 	engine := NewV8Engine()

@@ -38,7 +38,6 @@ import (
 	"github.com/dappley/go-dappley/logic/lblock"
 
 	"github.com/dappley/go-dappley/core/account"
-	"github.com/dappley/go-dappley/core/utxo"
 	"github.com/dappley/go-dappley/storage"
 	"github.com/dappley/go-dappley/util"
 	"github.com/jinzhu/copier"
@@ -57,7 +56,7 @@ var (
 type Blockchain struct {
 	bc           *Chain
 	db           storage.Storage
-	utxoCache    *utxo.UTXOCache
+	utxoCache    *lutxo.UTXOCache
 	libPolicy    LIBPolicy
 	txPool       *transactionpool.TransactionPool
 	scManager    core.ScEngineManager
@@ -72,7 +71,7 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 	bc := &Blockchain{
 		NewChain(genesis, db, libPolicy),
 		db,
-		utxo.NewUTXOCache(db),
+		lutxo.NewUTXOCache(db),
 		libPolicy,
 		txPool,
 		scManager,
@@ -91,7 +90,7 @@ func GetBlockchain(db storage.Storage, libPolicy LIBPolicy, txPool *transactionp
 	bc := &Blockchain{
 		LoadBlockchainFromDb(db, libPolicy),
 		db,
-		utxo.NewUTXOCache(db),
+		lutxo.NewUTXOCache(db),
 		libPolicy,
 		txPool,
 		scManager,
@@ -106,7 +105,7 @@ func (bc *Blockchain) GetDb() storage.Storage {
 	return bc.db
 }
 
-func (bc *Blockchain) GetUtxoCache() *utxo.UTXOCache {
+func (bc *Blockchain) GetUtxoCache() *lutxo.UTXOCache {
 	return bc.utxoCache
 }
 

@@ -1,8 +1,9 @@
 package lblockchain
 
 import (
-	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"testing"
+
+	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 
 	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/common/hash"
@@ -40,7 +41,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	}
 
 	// utxoIndexFromTXs creates a utxoIndex containing all vout of transactions in txs
-	utxoIndexFromTXs := func(txs []*transaction.Transaction, cache *utxo.UTXOCache) *lutxo.UTXOIndex {
+	utxoIndexFromTXs := func(txs []*transaction.Transaction, cache *lutxo.UTXOCache) *lutxo.UTXOIndex {
 		utxoIndex := lutxo.NewUTXOIndex(cache)
 		utxosMap := make(map[string]*utxo.UTXOTx)
 		for _, tx := range txs {

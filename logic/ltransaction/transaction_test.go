@@ -147,7 +147,7 @@ func TestVerifyNoCoinbaseTransaction(t *testing.T) {
 	wrongPrivKey, _ := ecdsa.GenerateKey(secp256k1.S256(), bytes.NewReader([]byte("FAKEfakefakefakefakefakefakefakefakefake")))
 	wrongPrivKeyByte, _ := secp256k1.FromECDSAPrivateKey(wrongPrivKey)
 	wrongPubKey := append(wrongPrivKey.PublicKey.X.Bytes(), wrongPrivKey.PublicKey.Y.Bytes()...)
-	utxoIndex := lutxo.NewUTXOIndex(utxo.NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage()))
 	utxoTx := utxo.NewUTXOTx()
 
 	utxoTx.PutUtxo(&utxo.UTXO{transactionbase.TXOutput{common.NewAmount(4), ta, ""}, []byte{1}, 0, utxo.UtxoNormal})
@@ -215,7 +215,7 @@ func TestInvalidExecutionTx(t *testing.T) {
 	deploymentTx.ID = deploymentTx.Hash()
 	contractAccount := deploymentTx.Vout[0].Account
 
-	utxoIndex := lutxo.NewUTXOIndex(utxo.NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage()))
 	utxoTx := utxo.NewUTXOTx()
 
 	utxoTx.PutUtxo(&utxo.UTXO{deploymentTx.Vout[0], deploymentTx.ID, 0, utxo.UtxoNormal})
@@ -236,7 +236,7 @@ func TestInvalidExecutionTx(t *testing.T) {
 	executionTx.ID = executionTx.Hash()
 	executionTx.Sign(account.GenerateKeyPairByPrivateKey(prikey1).GetPrivateKey(), utxoIndex.GetAllUTXOsByPubKeyHash(ta1.GetPubKeyHash()).GetAllUtxos())
 
-	err1 := VerifyTransaction(lutxo.NewUTXOIndex(utxo.NewUTXOCache(storage.NewRamStorage())), &executionTx, 0)
+	err1 := VerifyTransaction(lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage())), &executionTx, 0)
 	err2 := VerifyTransaction(utxoIndex, &executionTx, 0)
 	assert.NotNil(t, err1)
 	assert.Nil(t, err2)
@@ -292,7 +292,7 @@ func TestTransaction_Execute(t *testing.T) {
 			}
 			ctx := tx.ToContractTx()
 
-			index := lutxo.NewUTXOIndex(utxo.NewUTXOCache(storage.NewRamStorage()))
+			index := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage()))
 			if tt.scAddr != "" {
 				index.AddUTXO(scUtxo.TXOutput, nil, 0)
 			}

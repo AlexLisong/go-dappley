@@ -19,8 +19,9 @@
 package lblockchain
 
 import (
-	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"testing"
+
+	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/scState"

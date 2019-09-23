@@ -16,10 +16,11 @@
 // along with the go-dappley library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package utxo
+package lutxo
 
 import (
 	"github.com/dappley/go-dappley/core/account"
+	"github.com/dappley/go-dappley/core/utxo"
 	"github.com/dappley/go-dappley/storage"
 	lru "github.com/hashicorp/golang-lru"
 )
@@ -43,26 +44,26 @@ func NewUTXOCache(db storage.Storage) *UTXOCache {
 }
 
 // Return value from cache
-func (utxoCache *UTXOCache) Get(pubKeyHash account.PubKeyHash) *UTXOTx {
+func (utxoCache *UTXOCache) Get(pubKeyHash account.PubKeyHash) *utxo.UTXOTx {
 	mapData, ok := utxoCache.cache.Get(string(pubKeyHash))
 	if ok {
-		return mapData.(*UTXOTx)
+		return mapData.(*utxo.UTXOTx)
 	}
 
 	rawBytes, err := utxoCache.db.Get(pubKeyHash)
 
-	var utxoTx UTXOTx
+	var utxoTx utxo.UTXOTx
 	if err == nil {
-		utxoTx = DeserializeUTXOTx(rawBytes)
+		utxoTx = utxo.DeserializeUTXOTx(rawBytes)
 		utxoCache.cache.Add(string(pubKeyHash), &utxoTx)
 	} else {
-		utxoTx = NewUTXOTx()
+		utxoTx = utxo.NewUTXOTx()
 	}
 	return &utxoTx
 }
 
 // Add new data into cache
-func (utxoCache *UTXOCache) Put(pubKeyHash account.PubKeyHash, value *UTXOTx) error {
+func (utxoCache *UTXOCache) Put(pubKeyHash account.PubKeyHash, value *utxo.UTXOTx) error {
 	if pubKeyHash == nil {
 		return account.ErrEmptyPublicKeyHash
 	}

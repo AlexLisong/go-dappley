@@ -47,7 +47,7 @@ var (
 // UTXOIndex holds all unspent TXOutputs indexed by public key hash.
 type UTXOIndex struct {
 	index map[string]*utxo.UTXOTx
-	cache *utxo.UTXOCache
+	cache *UTXOCache
 	mutex *sync.RWMutex
 }
 
@@ -75,7 +75,7 @@ func GetTxOutput(vin transactionbase.TXInput, db storage.Storage) (transactionba
 }
 
 // NewUTXOIndex initializes an UTXOIndex instance
-func NewUTXOIndex(cache *utxo.UTXOCache) *UTXOIndex {
+func NewUTXOIndex(cache *UTXOCache) *UTXOIndex {
 	return &UTXOIndex{
 		index: make(map[string]*utxo.UTXOTx),
 		cache: cache,
