@@ -26,6 +26,7 @@ import (
 
 	"github.com/dappley/go-dappley/core/scState"
 	"github.com/dappley/go-dappley/core/transaction"
+	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/lutxo"
 	"github.com/dappley/go-dappley/logic/transactionpool"
 
@@ -217,7 +218,7 @@ func (bc *Blockchain) AddBlockWithContext(ctx *BlockContext) error {
 	}
 
 	//update smart contract state
-	err = ctx.State.Save(bc.db, ctx.Block.GetHash())
+	err = lScState.Save(bc.db, ctx.Block.GetHash(), ctx.State)
 	if err != nil {
 		blockLogger.Warn("Blockchain: failed to save scState to database.")
 		return err
@@ -389,7 +390,7 @@ func (bc *Blockchain) Rollback(targetHash hash.Hash, utxo *lutxo.UTXOIndex, scSt
 	bc.txPool.SaveToDatabase(bc.db)
 
 	utxo.Save()
-	scState.SaveToDatabase(bc.db)
+	lScState.SaveToDatabase(bc.db, scState)
 	bc.db.Flush()
 
 	return true

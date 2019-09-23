@@ -4,8 +4,8 @@ import (
 	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/core/account"
 	"github.com/dappley/go-dappley/core/block"
-	"github.com/dappley/go-dappley/core/scState"
 	"github.com/dappley/go-dappley/core/transaction"
+	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/lblock"
 	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"github.com/dappley/go-dappley/logic/lutxo"
@@ -14,7 +14,7 @@ import (
 )
 
 func PrepareBlockContext(bc *Blockchain, blk *block.Block) *BlockContext {
-	state := scState.LoadScStateFromDatabase(bc.GetDb())
+	state := lScState.LoadScStateFromDatabase(bc.GetDb())
 	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoCache())
 	utxoIndex.UpdateUtxoState(blk.GetTransactions())
 	ctx := BlockContext{Block: blk, UtxoIndex: utxoIndex, State: state}

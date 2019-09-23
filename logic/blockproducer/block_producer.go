@@ -7,6 +7,7 @@ import (
 	"github.com/dappley/go-dappley/common/deadline"
 
 	"github.com/dappley/go-dappley/core/blockchain"
+	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/lblock"
 
 	"github.com/dappley/go-dappley/common"
@@ -126,7 +127,7 @@ func (bp *BlockProducer) collectTransactions(utxoIndex *lutxo.UTXOIndex, parentB
 	var validTxs []*transaction.Transaction
 	totalSize := 0
 
-	scStorage := scState.LoadScStateFromDatabase(bp.bm.Getblockchain().GetDb())
+	scStorage := lScState.LoadScStateFromDatabase(bp.bm.Getblockchain().GetDb())
 	engine := vm.NewV8Engine()
 	defer engine.DestroyEngine()
 	rewards := make(map[string]string)
@@ -206,7 +207,7 @@ func (bp *BlockProducer) executeSmartContract(utxoIndex *lutxo.UTXOIndex,
 	txs []*transaction.Transaction, currBlkHeight uint64, parentBlk *block.Block) ([]*transaction.Transaction, *scState.ScState) {
 	//start a new smart contract engine
 
-	scStorage := scState.LoadScStateFromDatabase(bp.bm.Getblockchain().GetDb())
+	scStorage := lScState.LoadScStateFromDatabase(bp.bm.Getblockchain().GetDb())
 	engine := vm.NewV8Engine()
 	defer engine.DestroyEngine()
 	var generatedTXs []*transaction.Transaction

@@ -24,6 +24,7 @@ import (
 
 	"github.com/dappley/go-dappley/core/scState"
 	"github.com/dappley/go-dappley/core/transaction"
+	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/ltransaction"
 	"github.com/dappley/go-dappley/logic/lutxo"
 	"github.com/dappley/go-dappley/logic/transactionpool"
@@ -209,8 +210,9 @@ func BenchmarkBlockchain_AddBlockToTail(b *testing.B) {
 
 		b := block.NewBlock(txs, tailBlk, "")
 		b.SetHash(lblock.CalculateHash(b))
-		state := scState.LoadScStateFromDatabase(bc.GetDb())
+		state := lScState.LoadScStateFromDatabase(bc.GetDb())
 		bc.AddBlockWithContext(&BlockContext{Block: b, UtxoIndex: utxo, State: state})
+
 	}
 }
 

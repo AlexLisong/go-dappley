@@ -6,13 +6,12 @@ import (
 	"github.com/dappley/go-dappley/common/hash"
 
 	scstatepb "github.com/dappley/go-dappley/core/scState/pb"
-	"github.com/dappley/go-dappley/storage"
 	"github.com/golang/protobuf/proto"
 	logger "github.com/sirupsen/logrus"
 )
 
 type ChangeLog struct {
-	log map[string]map[string]string
+	Log map[string]map[string]string
 }
 
 type ScState struct {
@@ -34,13 +33,14 @@ func NewScState() *ScState {
 	return &ScState{make(map[string]map[string]string), make([]*Event, 0), &sync.RWMutex{}}
 }
 
-func (ss *ScState) GetEvents() []*Event { return ss.events }
+func (ss *ScState) GetEvents() []*Event                     { return ss.events }
+func (ss *ScState) GetStates() map[string]map[string]string { return ss.states }
 
 func (ss *ScState) RecordEvent(event *Event) {
 	ss.events = append(ss.events, event)
 }
 
-func deserializeScState(d []byte) *ScState {
+func DeserializeScState(d []byte) *ScState {
 	scStateProto := &scstatepb.ScState{}
 	err := proto.Unmarshal(d, scStateProto)
 	if err != nil {
@@ -51,7 +51,7 @@ func deserializeScState(d []byte) *ScState {
 	return ss
 }
 
-func (ss *ScState) serialize() []byte {
+func (ss *ScState) Serialize() []byte {
 	rawBytes, err := proto.Marshal(ss.ToProto())
 	if err != nil {
 		logger.WithError(err).Panic("ScState: failed to serialize UTXO states.")
@@ -110,22 +110,6 @@ func GetScStateKey(blkHash hash.Hash) []byte {
 	return []byte(scStateMapKey + blkHash.String())
 }
 
-//LoadScStateFromDatabase loads states from database
-func LoadScStateFromDatabase(db storage.Storage) *ScState {
-
-	rawBytes, err := db.Get([]byte(scStateMapKey))
-
-	if err != nil && err.Error() == storage.ErrKeyInvalid.Error() || len(rawBytes) == 0 {
-		return NewScState()
-	}
-	return deserializeScState(rawBytes)
-}
-
-//SaveToDatabase saves states to database
-func (ss *ScState) SaveToDatabase(db storage.Storage) error {
-	return db.Put([]byte(scStateMapKey), ss.serialize())
-}
-
 func (ss *ScState) ToProto() proto.Message {
 	scState := make(map[string]*scstatepb.State)
 
@@ -144,7 +128,7 @@ func (ss *ScState) FromProto(pb proto.Message) {
 func (cl *ChangeLog) ToProto() proto.Message {
 	changelog := make(map[string]*scstatepb.Log)
 
-	for key, val := range cl.log {
+	for key, val := range cl.Log {
 		changelog[key] = &scstatepb.Log{Log: val}
 	}
 	return &scstatepb.ChangeLog{Log: changelog}
@@ -152,120 +136,11 @@ func (cl *ChangeLog) ToProto() proto.Message {
 
 func (cl *ChangeLog) FromProto(pb proto.Message) {
 	for key, val := range pb.(*scstatepb.ChangeLog).Log {
-		cl.log[key] = val.Log
+		cl.Log[key] = val.Log
 	}
 }
 
-func (ss *ScState) Save(db storage.Storage, blkHash hash.Hash) error {
-	scStateOld := LoadScStateFromDatabase(db)
-	change := NewChangeLog()
-	change.log = scStateOld.findChangedValue(ss)
-
-	err := db.Put([]byte(scStateLogKey+blkHash.String()), change.serializeChangeLog())
-	if err != nil {
-		return err
-	}
-
-	err = db.Put([]byte(scStateMapKey), ss.serialize())
-	if err != nil {
-		return err
-	}
-
-	return err
-}
-
-func (ss *ScState) RevertState(db storage.Storage, prevHash hash.Hash) error {
-	changelog := getChangeLog(db, prevHash)
-	if len(changelog) < 1 {
-		return nil
-	}
-	ss.revertState(changelog)
-	//err := deleteLog(db, prevHash)
-	//if err != nil {
-	//	return err
-	//}
-
-	return nil
-}
-
-func (ss *ScState) findChangedValue(newState *ScState) map[string]map[string]string {
-	change := make(map[string]map[string]string)
-
-	for address, newMap := range newState.states {
-		if oldMap, ok := ss.states[address]; !ok {
-			change[address] = nil
-		} else {
-			ls := make(map[string]string)
-			for key, value := range oldMap {
-				if newValue, ok := newMap[key]; ok {
-					if newValue != value {
-						ls[key] = value
-					}
-				} else {
-					ls[key] = value
-				}
-			}
-
-			for key, value := range newMap {
-				if oldMap[key] != value {
-					ls[key] = oldMap[key]
-				}
-			}
-
-			if len(ls) > 0 {
-				change[address] = ls
-			}
-		}
-	}
-
-	for address, oldMap := range ss.states {
-		if _, ok := newState.states[address]; !ok {
-			change[address] = oldMap
-		}
-	}
-
-	return change
-}
-
-func (ss *ScState) revertState(changelog map[string]map[string]string) {
-	for address, pair := range changelog {
-		if pair == nil {
-			delete(ss.states, address)
-		} else {
-			if _, ok := ss.states[address]; !ok {
-				ss.states[address] = pair
-			} else {
-				for key, value := range pair {
-					if value != "" {
-						ss.states[address][key] = value
-					} else {
-						delete(ss.states[address], key)
-					}
-				}
-			}
-		}
-	}
-}
-
-func getChangeLog(db storage.Storage, prevHash hash.Hash) map[string]map[string]string {
-	change := make(map[string]map[string]string)
-
-	rawBytes, err := db.Get([]byte(scStateLogKey + prevHash.String()))
-
-	if err != nil && err.Error() == storage.ErrKeyInvalid.Error() || len(rawBytes) == 0 {
-		return change
-	}
-	change = deserializeChangeLog(rawBytes).log
-
-	return change
-}
-
-func deleteLog(db storage.Storage, prevHash hash.Hash) error {
-	err := db.Del([]byte(scStateLogKey + prevHash.String()))
-	return err
-}
-
-func deserializeChangeLog(d []byte) *ChangeLog {
+func DeserializeChangeLog(d []byte) *ChangeLog {
 	scStateProto := &scstatepb.ChangeLog{}
 	err := proto.Unmarshal(d, scStateProto)
 	if err != nil {
@@ -276,7 +151,7 @@ func deserializeChangeLog(d []byte) *ChangeLog {
 	return cl
 }
 
-func (cl *ChangeLog) serializeChangeLog() []byte {
+func (cl *ChangeLog) SerializeChangeLog() []byte {
 	rawBytes, err := proto.Marshal(cl.ToProto())
 	if err != nil {
 		logger.WithError(err).Panic("ScState: failed to serialize changelog.")
