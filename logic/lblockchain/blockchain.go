@@ -56,7 +56,7 @@ var (
 type Blockchain struct {
 	bc           *Chain
 	db           storage.Storage
-	utxoCache    *lutxo.UTXOCache
+	utxoDBIO     *storage.UTXODBIO
 	libPolicy    LIBPolicy
 	txPool       *transactionpool.TransactionPool
 	scManager    core.ScEngineManager
@@ -71,7 +71,7 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 	bc := &Blockchain{
 		NewChain(genesis, db, libPolicy),
 		db,
-		lutxo.NewUTXOCache(db),
+		storage.NewUTXODBIO(db),
 		libPolicy,
 		txPool,
 		scManager,
@@ -79,7 +79,7 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 		blkSizeLimit,
 		&sync.Mutex{},
 	}
-	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoCache())
+	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoDBIO())
 	utxoIndex.UpdateUtxoState(genesis.GetTransactions())
 	utxoIndex.Save()
 	return bc
@@ -90,7 +90,7 @@ func GetBlockchain(db storage.Storage, libPolicy LIBPolicy, txPool *transactionp
 	bc := &Blockchain{
 		LoadBlockchainFromDb(db, libPolicy),
 		db,
-		lutxo.NewUTXOCache(db),
+		storage.NewUTXODBIO(db),
 		libPolicy,
 		txPool,
 		scManager,
@@ -105,8 +105,8 @@ func (bc *Blockchain) GetDb() storage.Storage {
 	return bc.db
 }
 
-func (bc *Blockchain) GetUtxoCache() *lutxo.UTXOCache {
-	return bc.utxoCache
+func (bc *Blockchain) GetUtxoDBIO() *storage.UTXODBIO {
+	return bc.utxoDBIO
 }
 
 func (bc *Blockchain) GetTailBlockHash() hash.Hash {

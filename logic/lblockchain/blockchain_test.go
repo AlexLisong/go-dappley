@@ -146,7 +146,7 @@ func TestBlockchain_RollbackToABlock(t *testing.T) {
 	assert.Nil(t, err)
 
 	//rollback to height 3
-	bc.Rollback(blk.GetHash(), lutxo.NewUTXOIndex(bc.GetUtxoCache()), scState.NewScState())
+	bc.Rollback(blk.GetHash(), lutxo.NewUTXOIndex(bc.GetUtxoDBIO()), scState.NewScState())
 
 	//the height 3 block should be the new tail block
 	newTailBlk, err := bc.GetTailBlock()
@@ -197,7 +197,7 @@ func BenchmarkBlockchain_AddBlockToTail(b *testing.B) {
 
 		tailBlk, _ := bc.GetTailBlock()
 		txs := []*transaction.Transaction{}
-		utxo := lutxo.NewUTXOIndex(bc.GetUtxoCache())
+		utxo := lutxo.NewUTXOIndex(bc.GetUtxoDBIO())
 		cbtx := transaction.NewCoinbaseTX(accounts[0].GetAddress(), "", uint64(i+1), common.NewAmount(0))
 		utxo.UpdateUtxo(&cbtx)
 		txs = append(txs, &cbtx)

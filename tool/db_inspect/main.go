@@ -9,7 +9,6 @@ import (
 
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/utxo"
-	"github.com/dappley/go-dappley/logic/lutxo"
 
 	"github.com/dappley/go-dappley/core/account"
 	"github.com/dappley/go-dappley/storage"
@@ -210,7 +209,7 @@ func GetUtxoHandle() {
 	db := storage.OpenDatabase(dbPath)
 	defer db.Close()
 
-	utxoCache := lutxo.NewUTXOCache(db)
+	utxoCache := storage.NewUTXODBIO(db)
 	utxoTx := utxoCache.Get(pubKeyHash)
 
 	dumpUtxos(utxoTx)

@@ -104,7 +104,7 @@ func (bp *BlockProducer) prepareBlock(deadline deadline.Deadline) *lblockchain.B
 	}
 
 	// Retrieve all valid transactions from tx pool
-	utxoIndex := lutxo.NewUTXOIndex(bp.bm.Getblockchain().GetUtxoCache())
+	utxoIndex := lutxo.NewUTXOIndex(bp.bm.Getblockchain().GetUtxoDBIO())
 
 	validTxs, state := bp.collectTransactions(utxoIndex, parentBlock, deadline)
 

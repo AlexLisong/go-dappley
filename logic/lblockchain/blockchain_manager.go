@@ -326,7 +326,7 @@ func (bm *BlockchainManager) SendBlockHandler(input interface{}) {
 
 // RevertUtxoAndScStateAtBlockHash returns the previous snapshot of UTXOIndex when the block of given hash was the tail block.
 func RevertUtxoAndScStateAtBlockHash(db storage.Storage, bc *Blockchain, hash hash.Hash) (*lutxo.UTXOIndex, *scState.ScState, error) {
-	index := lutxo.NewUTXOIndex(bc.GetUtxoCache())
+	index := lutxo.NewUTXOIndex(bc.GetUtxoDBIO())
 	scState := lScState.LoadScStateFromDatabase(db)
 	bci := bc.Iterator()
 

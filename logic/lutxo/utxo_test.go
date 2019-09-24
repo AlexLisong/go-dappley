@@ -49,7 +49,7 @@ func TestAddUTXO(t *testing.T) {
 	defer db.Close()
 
 	txout := transactionbase.TXOutput{common.NewAmount(5), ta1, ""}
-	utxoIndex := NewUTXOIndex(NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex := NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 
 	utxoIndex.AddUTXO(txout, []byte{1}, 0)
 
@@ -67,7 +67,7 @@ func TestRemoveUTXO(t *testing.T) {
 	db := storage.NewRamStorage()
 	defer db.Close()
 
-	utxoIndex := NewUTXOIndex(NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex := NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 
 	addr1UtxoTx := utxo.NewUTXOTx()
 	addr1UtxoTx.PutUtxo(&utxo.UTXO{transactionbase.TXOutput{common.NewAmount(5), ta1, ""}, []byte{1}, 0, utxo.UtxoNormal})
@@ -101,7 +101,7 @@ func TestUpdate_Failed(t *testing.T) {
 	db.On("Get", mock.Anything, mock.Anything).Return(nil, nil)
 
 	blk := core.GenerateUtxoMockBlockWithoutInputs(nil)
-	utxoIndex := NewUTXOIndex(NewUTXOCache(db))
+	utxoIndex := NewUTXOIndex(storage.NewUTXODBIO(db))
 	utxoIndex.UpdateUtxoState(blk.GetTransactions())
 	err := utxoIndex.Save()
 	assert.Equal(t, simulatedFailure, err)
@@ -123,7 +123,7 @@ func TestFindUTXO(t *testing.T) {
 }
 
 func TestConcurrentUTXOindexReadWrite(t *testing.T) {
-	index := NewUTXOIndex(NewUTXOCache(storage.NewRamStorage()))
+	index := NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 
 	var mu sync.Mutex
 	var readOps uint64
@@ -184,7 +184,7 @@ func TestUTXOIndex_GetUTXOsByAmount(t *testing.T) {
 		{common.NewAmount(4), contractAccount, ""},
 	}
 
-	index := NewUTXOIndex(NewUTXOCache(storage.NewRamStorage()))
+	index := NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 	for i, TXOutput := range TXOutputs {
 		index.AddUTXO(TXOutput, []byte("01"), i)
 	}
@@ -241,7 +241,7 @@ func TestUTXOIndex_GetUTXOsByAmount(t *testing.T) {
 }
 
 func TestUTXOIndex_DeepCopy(t *testing.T) {
-	utxoIndex := NewUTXOIndex(NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex := NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 	utxoCopy := utxoIndex.DeepCopy()
 	assert.Equal(t, 0, len(utxoIndex.index))
 	assert.Equal(t, 0, len(utxoCopy.index))

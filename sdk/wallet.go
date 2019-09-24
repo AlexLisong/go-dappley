@@ -75,7 +75,7 @@ func (sdkw *DappSdkAccount) Initialize() {
 	sdkw.mutex.Lock()
 	defer sdkw.mutex.Unlock()
 
-	sdkw.utxoIndex = lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage()))
+	sdkw.utxoIndex = lutxo.NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 	sdkw.balances = make(map[account.Address]uint64)
 }
 

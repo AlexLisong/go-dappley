@@ -3,9 +3,10 @@ package tool
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"io/ioutil"
 	"os"
+
+	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/transaction"
@@ -94,7 +95,7 @@ func GenerateNewBlockChain(files []FileInfo, d *consensus.Dynasty, keys Keys, co
 	utxoIndexes := make([]*lutxo.UTXOIndex, len(files))
 	for i := range files {
 		parentBlks[i], _ = bcs[i].GetTailBlock()
-		utxoIndexes[i] = lutxo.NewUTXOIndex(bcs[i].GetUtxoCache())
+		utxoIndexes[i] = lutxo.NewUTXOIndex(bcs[i].GetUtxoDBIO())
 		for j := 0; j < len(d.GetProducers()); j++ {
 			b := generateBlock(utxoIndexes[i], parentBlks[i], bcs[i], d, keys, []*transaction.Transaction{})
 			bcs[i].AddBlockToDb(b)

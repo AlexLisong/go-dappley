@@ -46,9 +46,9 @@ var (
 
 // UTXOIndex holds all unspent TXOutputs indexed by public key hash.
 type UTXOIndex struct {
-	index map[string]*utxo.UTXOTx
-	cache *UTXOCache
-	mutex *sync.RWMutex
+	index    map[string]*utxo.UTXOTx
+	utxoDBIO *storage.UTXODBIO
+	mutex    *sync.RWMutex
 }
 
 // generate storage key in database
@@ -75,11 +75,11 @@ func GetTxOutput(vin transactionbase.TXInput, db storage.Storage) (transactionba
 }
 
 // NewUTXOIndex initializes an UTXOIndex instance
-func NewUTXOIndex(cache *UTXOCache) *UTXOIndex {
+func NewUTXOIndex(utxoDBIO *storage.UTXODBIO) *UTXOIndex {
 	return &UTXOIndex{
-		index: make(map[string]*utxo.UTXOTx),
-		cache: cache,
-		mutex: &sync.RWMutex{},
+		index:    make(map[string]*utxo.UTXOTx),
+		utxoDBIO: utxoDBIO,
+		mutex:    &sync.RWMutex{},
 	}
 }
 
@@ -94,7 +94,7 @@ func (utxos *UTXOIndex) Save() error {
 			return err
 		}
 
-		err = utxos.cache.Put(pubKeyHash, utxoTx)
+		err = utxos.utxoDBIO.Put(pubKeyHash, utxoTx)
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func (utxos *UTXOIndex) GetAllUTXOsByPubKeyHash(pubkeyHash account.PubKeyHash) *
 		return utxoTx
 	}
 
-	utxoTx = utxos.cache.Get(pubkeyHash)
+	utxoTx = utxos.utxoDBIO.Get(pubkeyHash)
 	newUtxoTx := utxoTx.DeepCopy()
 	utxos.mutex.Lock()
 	//if utxos.index[key] != nil{
@@ -343,7 +343,7 @@ func (utxos *UTXOIndex) DeepCopy() *UTXOIndex {
 	utxos.mutex.RLock()
 	defer utxos.mutex.RUnlock()
 
-	utxocopy := NewUTXOIndex(utxos.cache)
+	utxocopy := NewUTXOIndex(utxos.utxoDBIO)
 	for pkh, utxoTx := range utxos.index {
 		newUtxoTx := utxoTx.DeepCopy()
 		utxocopy.index[pkh] = &newUtxoTx

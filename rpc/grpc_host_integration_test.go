@@ -1,5 +1,3 @@
-// +build integration
-
 // Copyright (C) 2018 go-dappley authors
 //
 // This file is part of the go-dappley library.
@@ -22,24 +20,26 @@ package rpc
 
 import (
 	"fmt"
+
 	"github.com/dappley/go-dappley/common/deadline"
 	"github.com/dappley/go-dappley/consensus"
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/blockchain"
 	blockchainMock "github.com/dappley/go-dappley/logic/lblockchain/mocks"
 
-	"github.com/dappley/go-dappley/logic/blockproducer/mocks"
-	"github.com/dappley/go-dappley/logic/lblock"
-	"github.com/stretchr/testify/mock"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/dappley/go-dappley/logic/blockproducer/mocks"
+	"github.com/dappley/go-dappley/logic/lblock"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/dappley/go-dappley/core/blockproducerinfo"
 	"github.com/dappley/go-dappley/core/scState"
 	"github.com/dappley/go-dappley/core/transaction"
-	"github.com/dappley/go-dappley/core/transaction/pb"
-	"github.com/dappley/go-dappley/core/utxo/pb"
+	transactionpb "github.com/dappley/go-dappley/core/transaction/pb"
+	utxopb "github.com/dappley/go-dappley/core/utxo/pb"
 	"github.com/dappley/go-dappley/logic/blockproducer"
 	"github.com/dappley/go-dappley/logic/lblockchain"
 	"github.com/dappley/go-dappley/logic/lutxo"
@@ -52,7 +52,7 @@ import (
 
 	"github.com/dappley/go-dappley/logic"
 	"github.com/dappley/go-dappley/network"
-	"github.com/dappley/go-dappley/rpc/pb"
+	rpcpb "github.com/dappley/go-dappley/rpc/pb"
 	"github.com/dappley/go-dappley/storage"
 	"github.com/dappley/go-dappley/vm"
 	"github.com/dappley/go-dappley/wallet"
@@ -613,7 +613,7 @@ func TestRpcSendTransaction(t *testing.T) {
 	c := rpcpb.NewRpcServiceClient(conn)
 
 	pubKeyHash := rpcContext.account.GetPubKeyHash()
-	utxos, err := lutxo.NewUTXOIndex(rpcContext.bm.Getblockchain().GetUtxoCache()).GetUTXOsByAmount(pubKeyHash, common.NewAmount(6))
+	utxos, err := lutxo.NewUTXOIndex(rpcContext.bm.Getblockchain().GetUtxoDBIO()).GetUTXOsByAmount(pubKeyHash, common.NewAmount(6))
 	assert.Nil(t, err)
 
 	sendTxParam := transaction.NewSendTxParam(rpcContext.account.GetAddress(),
@@ -633,7 +633,7 @@ func TestRpcSendTransaction(t *testing.T) {
 	for (rpcContext.bm.Getblockchain().GetMaxHeight() - maxHeight) < 2 {
 	}
 
-	utxos2, err := lutxo.NewUTXOIndex(rpcContext.bm.Getblockchain().GetUtxoCache()).GetUTXOsByAmount(pubKeyHash, common.NewAmount(6))
+	utxos2, err := lutxo.NewUTXOIndex(rpcContext.bm.Getblockchain().GetUtxoDBIO()).GetUTXOsByAmount(pubKeyHash, common.NewAmount(6))
 	sendTxParam2 := transaction.NewSendTxParam(rpcContext.account.GetAddress(),
 		rpcContext.account.GetKeyPair(),
 		receiverAccount.GetAddress(),
@@ -704,7 +704,7 @@ func TestRpcService_RpcSendBatchTransaction(t *testing.T) {
 	c := rpcpb.NewRpcServiceClient(conn)
 
 	pubKeyHash := rpcContext.account.GetPubKeyHash()
-	utxoIndex := lutxo.NewUTXOIndex(rpcContext.bm.Getblockchain().GetUtxoCache())
+	utxoIndex := lutxo.NewUTXOIndex(rpcContext.bm.Getblockchain().GetUtxoDBIO())
 	utxos, err := utxoIndex.GetUTXOsByAmount(pubKeyHash, common.NewAmount(3))
 	assert.Nil(t, err)
 
@@ -929,7 +929,7 @@ func TestRpcGetAllTransactionsFromTxPool(t *testing.T) {
 
 	// generate new transaction
 	pubKeyHash := rpcContext.account.GetPubKeyHash()
-	utxos, err := lutxo.NewUTXOIndex(rpcContext.bm.Getblockchain().GetUtxoCache()).GetUTXOsByAmount(pubKeyHash, common.NewAmount(6))
+	utxos, err := lutxo.NewUTXOIndex(rpcContext.bm.Getblockchain().GetUtxoDBIO()).GetUTXOsByAmount(pubKeyHash, common.NewAmount(6))
 	assert.Nil(t, err)
 
 	sendTxParam := transaction.NewSendTxParam(rpcContext.account.GetAddress(),
@@ -1216,7 +1216,7 @@ func TestRpcService_RpcEstimateGas(t *testing.T) {
 	// estimate contract
 	contract = "{\"function\":\"record\",\"args\":[\"damnkW1X8KtnDLoKErLzAgaBtXDZKRywfF\",\"2000\"]}"
 	pubKeyHash := senderAccount.GetPubKeyHash()
-	utxos, err := lutxo.NewUTXOIndex(bm.Getblockchain().GetUtxoCache()).GetUTXOsByAmount(pubKeyHash, common.NewAmount(1))
+	utxos, err := lutxo.NewUTXOIndex(bm.Getblockchain().GetUtxoDBIO()).GetUTXOsByAmount(pubKeyHash, common.NewAmount(1))
 	sendTxParam := transaction.NewSendTxParam(senderAccount.GetAddress(),
 		senderAccount.GetKeyPair(),
 		account.NewAddress(contractAddr),

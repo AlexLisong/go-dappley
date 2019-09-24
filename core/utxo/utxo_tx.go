@@ -19,13 +19,14 @@
 package utxo
 
 import (
+	"hash/fnv"
+	"strconv"
+
 	"github.com/dappley/go-dappley/common"
 	utxopb "github.com/dappley/go-dappley/core/utxo/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/raviqqe/hamt"
 	logger "github.com/sirupsen/logrus"
-	"hash/fnv"
-	"strconv"
 )
 
 // UTXOTx holds txid_vout and UTXO pairs

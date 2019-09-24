@@ -41,7 +41,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	}
 
 	// utxoIndexFromTXs creates a utxoIndex containing all vout of transactions in txs
-	utxoIndexFromTXs := func(txs []*transaction.Transaction, cache *lutxo.UTXOCache) *lutxo.UTXOIndex {
+	utxoIndexFromTXs := func(txs []*transaction.Transaction, cache *storage.UTXODBIO) *lutxo.UTXOIndex {
 		utxoIndex := lutxo.NewUTXOIndex(cache)
 		utxosMap := make(map[string]*utxo.UTXOTx)
 		for _, tx := range txs {
@@ -90,7 +90,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	abnormalBlock := block.NewBlock([]*transaction.Transaction{&abnormalTX}, normalBlock, "")
 	abnormalBlock.SetHash(lblock.CalculateHash(abnormalBlock))
 	corruptedUTXOBlockchain := prepareBlockchainWithBlocks([]*block.Block{normalBlock, normalBlock2})
-	err := utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, corruptedUTXOBlockchain.GetUtxoCache()).Save()
+	err := utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, corruptedUTXOBlockchain.GetUtxoDBIO()).Save()
 	if err != nil {
 		logger.Fatal("TestGetUTXOIndexAtBlockHash: cannot corrupt the utxoIndex in database.")
 	}
@@ -118,56 +118,56 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 			name:     "current block",
 			bc:       bcs[0],
 			hash:     normalBlock.GetHash(),
-			expected: utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, bcs[0].GetUtxoCache()),
+			expected: utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, bcs[0].GetUtxoDBIO()),
 			err:      nil,
 		},
 		{
 			name:     "previous block",
 			bc:       bcs[1],
 			hash:     normalBlock.GetHash(),
-			expected: utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, bcs[1].GetUtxoCache()), // should not have utxo from normalTX2
+			expected: utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, bcs[1].GetUtxoDBIO()), // should not have utxo from normalTX2
 			err:      nil,
 		},
 		{
 			name:     "block not found",
 			bc:       bcs[2],
 			hash:     hash.Hash("not there"),
-			expected: lutxo.NewUTXOIndex(bcs[2].GetUtxoCache()),
+			expected: lutxo.NewUTXOIndex(bcs[2].GetUtxoDBIO()),
 			err:      ErrBlockDoesNotExist,
 		},
 		{
 			name:     "no txs in blocks",
 			bc:       bcs[3],
 			hash:     emptyBlock.GetHash(),
-			expected: utxoIndexFromTXs(genesisBlock.GetTransactions(), bcs[3].GetUtxoCache()),
+			expected: utxoIndexFromTXs(genesisBlock.GetTransactions(), bcs[3].GetUtxoDBIO()),
 			err:      nil,
 		},
 		{
 			name:     "genesis block",
 			bc:       bcs[4],
 			hash:     genesisBlock.GetHash(),
-			expected: utxoIndexFromTXs(genesisBlock.GetTransactions(), bcs[4].GetUtxoCache()),
+			expected: utxoIndexFromTXs(genesisBlock.GetTransactions(), bcs[4].GetUtxoDBIO()),
 			err:      nil,
 		},
 		{
 			name:     "utxo not found",
 			bc:       bcs[5],
 			hash:     normalBlock.GetHash(),
-			expected: lutxo.NewUTXOIndex(bcs[5].GetUtxoCache()),
+			expected: lutxo.NewUTXOIndex(bcs[5].GetUtxoDBIO()),
 			err:      lutxo.ErrUTXONotFound,
 		},
 		{
 			name:     "corrupted utxoIndex",
 			bc:       bcs[6],
 			hash:     normalBlock.GetHash(),
-			expected: lutxo.NewUTXOIndex(bcs[6].GetUtxoCache()),
+			expected: lutxo.NewUTXOIndex(bcs[6].GetUtxoDBIO()),
 			err:      lutxo.ErrUTXONotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			utxoIndex := lutxo.NewUTXOIndex(tt.bc.utxoCache)
+			utxoIndex := lutxo.NewUTXOIndex(tt.bc.utxoDBIO)
 			logger.WithFields(logger.Fields{
 				"normalBlkHash": utxoIndex.GetAllUTXOsByPubKeyHash(acc.GetPubKeyHash()),
 			}).Error(tt.bc.GetTailBlockHash())
@@ -194,7 +194,7 @@ func TestCopyAndRevertUtxos(t *testing.T) {
 	bc.AddBlockWithContext(PrepareBlockContext(bc, blk1))
 	bc.AddBlockWithContext(PrepareBlockContext(bc, blk2))
 
-	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoCache())
+	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoDBIO())
 
 	var address1Bytes = []byte("address1000000000000000000000000")
 	var address2Bytes = []byte("address2000000000000000000000000")

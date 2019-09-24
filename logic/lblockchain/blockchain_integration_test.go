@@ -62,7 +62,7 @@ func TestBlockchain_RollbackToABlockWithTransactions(t *testing.T) {
 		tx0 - tx1 -tx2 - tx3 -tx4 -
 	*/
 
-	utxoIndex := lutxo.NewUTXOIndex(bc.utxoCache)
+	utxoIndex := lutxo.NewUTXOIndex(bc.utxoDBIO)
 	txs := fakeDependentTxs(utxoIndex, coinbaseAccount, 5)
 
 	//tx0 is in blk 4 and tx1 is in blk5. all other transactions are still in transaction pool
@@ -95,7 +95,7 @@ func TestBlockchain_RollbackToABlockWithTransactions(t *testing.T) {
 	assert.Nil(t, err)
 
 	//rollback to height 3
-	bc.Rollback(blk.GetHash(), lutxo.NewUTXOIndex(bc.GetUtxoCache()), scState.NewScState())
+	bc.Rollback(blk.GetHash(), lutxo.NewUTXOIndex(bc.GetUtxoDBIO()), scState.NewScState())
 
 	//the height 3 block should be the new tail block
 	newTailBlk, err := bc.GetTailBlock()

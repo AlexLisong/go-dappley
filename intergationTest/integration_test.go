@@ -754,10 +754,10 @@ func TestUpdate(t *testing.T) {
 	defer db.Close()
 
 	blk := core.GenerateUtxoMockBlockWithoutInputs(nil)
-	utxoIndex := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(db))
+	utxoIndex := lutxo.NewUTXOIndex(storage.NewUTXODBIO(db))
 	utxoIndex.UpdateUtxoState(blk.GetTransactions())
 	utxoIndex.Save()
-	utxoIndexInDB := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(db))
+	utxoIndexInDB := lutxo.NewUTXOIndex(storage.NewUTXODBIO(db))
 
 	// test updating UTXO index with non-dependent transactions
 	// Assert that both the original instance and the database copy are updated correctly
@@ -859,7 +859,7 @@ func TestUpdate(t *testing.T) {
 	utxoTxPk1 := utxo.NewUTXOTx()
 	utxoTxPk1.PutUtxo(utxoPk1)
 
-	utxoIndex2 := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex2 := lutxo.NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 
 	utxoIndex2.SetIndex(map[string]*utxo.UTXOTx{
 		a2.GetPubKeyHash().String(): &utxoTxPk2,

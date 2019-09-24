@@ -222,7 +222,7 @@ func GetBalance(address account.Address, bc *lblockchain.Blockchain) (*common.Am
 	}
 
 	balance := common.NewAmount(0)
-	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoCache())
+	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoDBIO())
 	utxos := utxoIndex.GetAllUTXOsByPubKeyHash(acc.GetPubKeyHash())
 	for _, utxo := range utxos.Indices {
 		balance = balance.Add(utxo.Value)
@@ -278,7 +278,7 @@ func sendTo(sendTxParam transaction.SendTxParam, bc *lblockchain.Blockchain) ([]
 	}
 
 	acc := account.NewAccountByKey(sendTxParam.SenderKeyPair)
-	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoCache())
+	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoDBIO())
 
 	utxoIndex.UpdateUtxoState(bc.GetTxPool().GetAllTransactions())
 

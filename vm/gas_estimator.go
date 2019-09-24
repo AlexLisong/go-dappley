@@ -20,7 +20,7 @@ var (
 )
 
 // EstimateGas returns estimated gas value of contract deploy and execution.
-func EstimateGas(tx *transaction.Transaction, tailBlk *block.Block, utxoCache *lutxo.UTXOCache, db storage.Storage) (uint64, error) {
+func EstimateGas(tx *transaction.Transaction, tailBlk *block.Block, utxoCache *storage.UTXODBIO, db storage.Storage) (uint64, error) {
 	utxoIndex := lutxo.NewUTXOIndex(utxoCache)
 	scStorage := lScState.LoadScStateFromDatabase(db)
 	engine := NewV8Engine()

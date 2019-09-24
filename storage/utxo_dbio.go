@@ -16,46 +16,45 @@
 // along with the go-dappley library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package lutxo
+package storage
 
 import (
 	"github.com/dappley/go-dappley/core/account"
 	"github.com/dappley/go-dappley/core/utxo"
-	"github.com/dappley/go-dappley/storage"
 	lru "github.com/hashicorp/golang-lru"
 )
 
 const UtxoCacheLRUCacheLimit = 1024
 
 // UTXOCache holds temporary UTXOTx data
-type UTXOCache struct {
+type UTXODBIO struct {
 	// key: address, value: UTXOTx
 	cache *lru.Cache
-	db    storage.Storage
+	db    Storage
 }
 
-func NewUTXOCache(db storage.Storage) *UTXOCache {
-	utxoCache := &UTXOCache{
+func NewUTXODBIO(db Storage) *UTXODBIO {
+	utxoDBIO := &UTXODBIO{
 		cache: nil,
 		db:    db,
 	}
-	utxoCache.cache, _ = lru.New(UtxoCacheLRUCacheLimit)
-	return utxoCache
+	utxoDBIO.cache, _ = lru.New(UtxoCacheLRUCacheLimit)
+	return utxoDBIO
 }
 
 // Return value from cache
-func (utxoCache *UTXOCache) Get(pubKeyHash account.PubKeyHash) *utxo.UTXOTx {
-	mapData, ok := utxoCache.cache.Get(string(pubKeyHash))
+func (utxoDBIO *UTXODBIO) Get(pubKeyHash account.PubKeyHash) *utxo.UTXOTx {
+	mapData, ok := utxoDBIO.cache.Get(string(pubKeyHash))
 	if ok {
 		return mapData.(*utxo.UTXOTx)
 	}
 
-	rawBytes, err := utxoCache.db.Get(pubKeyHash)
+	rawBytes, err := utxoDBIO.db.Get(pubKeyHash)
 
 	var utxoTx utxo.UTXOTx
 	if err == nil {
 		utxoTx = utxo.DeserializeUTXOTx(rawBytes)
-		utxoCache.cache.Add(string(pubKeyHash), &utxoTx)
+		utxoDBIO.cache.Add(string(pubKeyHash), &utxoTx)
 	} else {
 		utxoTx = utxo.NewUTXOTx()
 	}
@@ -63,25 +62,18 @@ func (utxoCache *UTXOCache) Get(pubKeyHash account.PubKeyHash) *utxo.UTXOTx {
 }
 
 // Add new data into cache
-func (utxoCache *UTXOCache) Put(pubKeyHash account.PubKeyHash, value *utxo.UTXOTx) error {
+func (utxoDBIO *UTXODBIO) Put(pubKeyHash account.PubKeyHash, value *utxo.UTXOTx) error {
 	if pubKeyHash == nil {
 		return account.ErrEmptyPublicKeyHash
 	}
 	savedUtxoTx := value.DeepCopy()
-	//mapData, ok := utxoCache.cache.Get(string(pubKeyHash))
-	//var utxotxTemp *UTXOTx
-	//if ok {
-	//	utxotxTemp = mapData.(*UTXOTx)
-	//	utxotxTemp.Indices = nil
-	//	utxotxTemp = nil
-	//}
-	utxoCache.cache.Add(string(pubKeyHash), &savedUtxoTx)
-	return utxoCache.db.Put(pubKeyHash, value.Serialize())
+	utxoDBIO.cache.Add(string(pubKeyHash), &savedUtxoTx)
+	return utxoDBIO.db.Put(pubKeyHash, value.Serialize())
 }
 
-func (utxoCache *UTXOCache) Delete(pubKeyHash account.PubKeyHash) error {
+func (utxoDBIO *UTXODBIO) Delete(pubKeyHash account.PubKeyHash) error {
 	if pubKeyHash == nil {
 		return account.ErrEmptyPublicKeyHash
 	}
-	return utxoCache.db.Del(pubKeyHash)
+	return utxoDBIO.db.Del(pubKeyHash)
 }

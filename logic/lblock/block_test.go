@@ -218,7 +218,7 @@ func TestBlock_VerifyTransactions(t *testing.T) {
 				index[key] = &utxoTx
 			}
 
-			utxoIndex := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(db))
+			utxoIndex := lutxo.NewUTXOIndex(storage.NewUTXODBIO(db))
 			utxoIndex.SetIndex(index)
 			//{index, utxo.NewUTXOCache(db), &sync.RWMutex{}}
 			scState := scState.NewScState()

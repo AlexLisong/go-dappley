@@ -109,7 +109,7 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 	}
 	dependentTx5.ID = dependentTx5.Hash()
 
-	utxoIndex := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex := lutxo.NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 
 	utxoTx2 := utxo.NewUTXOTx()
 	utxoTx2.PutUtxo(&utxo.UTXO{dependentTx1.Vout[1], dependentTx1.ID, 1, utxo.UtxoNormal})
@@ -167,7 +167,7 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 	txPool.Push(dependentTx5)
 
 	// test UTXOs not found for parent transactions
-	err5 := ltransaction.VerifyTransaction(lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage())), &dependentTx3, 0)
+	err5 := ltransaction.VerifyTransaction(lutxo.NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage())), &dependentTx3, 0)
 	assert.NotNil(t, err5)
 
 	// test a standalone transaction
@@ -178,7 +178,7 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 
 func TestTransactionPool_PopTransactionsWithMostTipsNoDependency(t *testing.T) {
 	txPool := NewTransactionPool(nil, 1280000)
-	utxoIndex := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex := lutxo.NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 	var prevUTXOs []*utxo.UTXOTx
 	var txs []*transaction.Transaction
 	var accounts []*account.Account
@@ -207,7 +207,7 @@ func TestTransactionPool_PopTransactionsWithMostTipsNoDependency(t *testing.T) {
 
 func TestTransactionPool_PopTransactionsWithMostTipsWithDependency(t *testing.T) {
 	txPool := NewTransactionPool(nil, 1280000)
-	utxoIndex := lutxo.NewUTXOIndex(lutxo.NewUTXOCache(storage.NewRamStorage()))
+	utxoIndex := lutxo.NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 	var accounts []*account.Account
 	var txs []*transaction.Transaction
 
