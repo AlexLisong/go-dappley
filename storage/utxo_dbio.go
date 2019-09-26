@@ -20,6 +20,7 @@ package storage
 
 import (
 	"github.com/dappley/go-dappley/core/account"
+	"github.com/dappley/go-dappley/core/transactionbase"
 	"github.com/dappley/go-dappley/core/utxo"
 	lru "github.com/hashicorp/golang-lru"
 )
@@ -29,17 +30,24 @@ const UtxoCacheLRUCacheLimit = 1024
 // UTXOCache holds temporary UTXOTx data
 type UTXODBIO struct {
 	// key: address, value: UTXOTx
-	cache *lru.Cache
-	db    Storage
+	cache        *lru.Cache
+	db           Storage
+	txOutPutDBIO *TXOutPutDBIO
 }
 
 func NewUTXODBIO(db Storage) *UTXODBIO {
 	utxoDBIO := &UTXODBIO{
-		cache: nil,
-		db:    db,
+		cache:        nil,
+		db:           db,
+		txOutPutDBIO: NewTXOutPutDBIO(db),
 	}
 	utxoDBIO.cache, _ = lru.New(UtxoCacheLRUCacheLimit)
 	return utxoDBIO
+}
+
+// Return value from cache
+func (utxoDBIO *UTXODBIO) GetTxOutput(vin transactionbase.TXInput) (transactionbase.TXOutput, error) {
+	return utxoDBIO.txOutPutDBIO.GetTxOutput(vin)
 }
 
 // Return value from cache
