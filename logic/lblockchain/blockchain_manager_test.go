@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 
 	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/common/hash"
@@ -14,7 +15,6 @@ import (
 	"github.com/dappley/go-dappley/core/utxo"
 	"github.com/dappley/go-dappley/logic/lblock"
 	"github.com/dappley/go-dappley/logic/lutxo"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 	logger "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
@@ -30,7 +30,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	prepareBlockchainWithBlocks := func(blks []*block.Block) *Blockchain {
 		policy := &mocks.LIBPolicy{}
 		policy.On("GetMinConfirmationNum").Return(3)
-		bc := CreateBlockchain(genesisAddr, storage.NewRamStorage(), policy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
+		bc := CreateBlockchain(genesisAddr, storage.NewRamStorage(), policy, ltransactionpool.NewTransactionPoolLogic(nil, 128000), nil, 100000)
 		for _, blk := range blks {
 			err := bc.AddBlockWithContext(PrepareBlockContext(bc, blk))
 			if err != nil {
@@ -101,7 +101,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	bcs := []*Blockchain{
 		prepareBlockchainWithBlocks([]*block.Block{normalBlock}),
 		prepareBlockchainWithBlocks([]*block.Block{normalBlock, normalBlock2}),
-		CreateBlockchain(account.NewAddress(""), storage.NewRamStorage(), policy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000),
+		CreateBlockchain(account.NewAddress(""), storage.NewRamStorage(), policy, ltransactionpool.NewTransactionPoolLogic(nil, 128000), nil, 100000),
 		prepareBlockchainWithBlocks([]*block.Block{prevBlock, emptyBlock}),
 		prepareBlockchainWithBlocks([]*block.Block{normalBlock, normalBlock2}),
 		prepareBlockchainWithBlocks([]*block.Block{normalBlock, abnormalBlock}),
@@ -186,7 +186,7 @@ func TestCopyAndRevertUtxos(t *testing.T) {
 	coinbaseAddr := account.NewAddress("testaddress")
 	policy := &mocks.LIBPolicy{}
 	policy.On("GetMinConfirmationNum").Return(3)
-	bc := CreateBlockchain(coinbaseAddr, db, policy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
+	bc := CreateBlockchain(coinbaseAddr, db, policy, ltransactionpool.NewTransactionPoolLogic(nil, 128000), nil, 100000)
 
 	blk1 := core.GenerateUtxoMockBlockWithoutInputs(bc.GetTailBlockHash()) // contains 2 UTXOs for address1
 	blk2 := core.GenerateUtxoMockBlockWithInputs()                         // contains tx that transfers address1's UTXOs to address2 with a change

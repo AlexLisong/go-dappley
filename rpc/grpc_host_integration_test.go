@@ -26,6 +26,7 @@ import (
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/blockchain"
 	blockchainMock "github.com/dappley/go-dappley/logic/lblockchain/mocks"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 
 	"strings"
 	"testing"
@@ -43,7 +44,6 @@ import (
 	"github.com/dappley/go-dappley/logic/blockproducer"
 	"github.com/dappley/go-dappley/logic/lblockchain"
 	"github.com/dappley/go-dappley/logic/lutxo"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 
 	"github.com/dappley/go-dappley/util"
 
@@ -74,7 +74,7 @@ type RpcTestContext struct {
 	serverPort uint32
 }
 
-func CreateProducer(producerAddr, addr account.Address, db storage.Storage, txPool *transactionpool.TransactionPool, node *network.Node) (*lblockchain.BlockchainManager, *blockproducer.BlockProducer) {
+func CreateProducer(producerAddr, addr account.Address, db storage.Storage, txPool *ltransactionpool.TransactionPoolLogic, node *network.Node) (*lblockchain.BlockchainManager, *blockproducer.BlockProducer) {
 	producer := blockproducerinfo.NewBlockProducerInfo(producerAddr.String())
 
 	libPolicy := &blockchainMock.LIBPolicy{}
@@ -154,7 +154,7 @@ func TestRpcSend(t *testing.T) {
 		minerAccount.GetAddress(),
 		senderAccount.GetAddress(),
 		store,
-		transactionpool.NewTransactionPool(node, 128000),
+		ltransactionpool.NewTransactionPoolLogic(node, 128000),
 		node,
 	)
 
@@ -234,7 +234,7 @@ func TestRpcSendContract(t *testing.T) {
 		minerAccount.GetAddress(),
 		senderAccount.GetAddress(),
 		store,
-		transactionpool.NewTransactionPool(node, 128000),
+		ltransactionpool.NewTransactionPoolLogic(node, 128000),
 		node,
 	)
 
@@ -900,7 +900,7 @@ func TestGetNewTransaction(t *testing.T) {
 	_, _, err = logic.Send(rpcContext.account, receiverAccount.GetAddress(), common.NewAmount(4), common.NewAmount(0), common.NewAmount(0), common.NewAmount(0), "", rpcContext.bm.Getblockchain())
 
 	time.Sleep(time.Second)
-	assert.Equal(t, false, rpcContext.bm.Getblockchain().GetTxPool().EventBus.HasCallback(transactionpool.NewTransactionTopic))
+	assert.Equal(t, false, rpcContext.bm.Getblockchain().GetTxPool().EventBus.HasCallback(ltransactionpool.NewTransactionTopic))
 
 	rpcContext.bp.Stop()
 	util.WaitDoneOrTimeout(func() bool {
@@ -1112,7 +1112,7 @@ func createRpcTestContext(startPortOffset uint32) (*RpcTestContext, error) {
 		acc.GetAddress(),
 		acc.GetAddress(),
 		context.store,
-		transactionpool.NewTransactionPool(context.node, 128000),
+		ltransactionpool.NewTransactionPoolLogic(context.node, 128000),
 		context.node,
 	)
 
@@ -1168,7 +1168,7 @@ func TestRpcService_RpcEstimateGas(t *testing.T) {
 		minerAccount.GetAddress(),
 		senderAccount.GetAddress(),
 		store,
-		transactionpool.NewTransactionPool(node, 128000),
+		ltransactionpool.NewTransactionPoolLogic(node, 128000),
 		node,
 	)
 
@@ -1260,7 +1260,7 @@ func TestRpcService_RpcGasPrice(t *testing.T) {
 		minerAccount.GetAddress(),
 		senderAccount.GetAddress(),
 		store,
-		transactionpool.NewTransactionPool(node, 128000),
+		ltransactionpool.NewTransactionPoolLogic(node, 128000),
 		node,
 	)
 

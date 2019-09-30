@@ -7,13 +7,13 @@ import (
 	"os"
 
 	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/transaction"
 	"github.com/dappley/go-dappley/logic/lblock"
 	"github.com/dappley/go-dappley/logic/lblockchain"
 	"github.com/dappley/go-dappley/logic/lutxo"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 
 	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/consensus"
@@ -70,7 +70,7 @@ func GenerateNewBlockChain(files []FileInfo, d *consensus.Dynasty, keys Keys, co
 	policy := &mocks.LIBPolicy{}
 	policy.On("GetMinConfirmationNum").Return(3)
 	for i := range files {
-		bc := lblockchain.CreateBlockchain(addr, files[i].Db, policy, transactionpool.NewTransactionPool(nil, 200), nil, 1000000)
+		bc := lblockchain.CreateBlockchain(addr, files[i].Db, policy, ltransactionpool.NewTransactionPoolLogic(nil, 200), nil, 1000000)
 		bcs[i] = bc
 	}
 

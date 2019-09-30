@@ -20,22 +20,26 @@ package main
 
 import (
 	"flag"
+
 	"github.com/dappley/go-dappley/logic/blockproducer"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 
 	"github.com/dappley/go-dappley/core/blockchain"
 	"github.com/dappley/go-dappley/core/blockproducerinfo"
 	"github.com/dappley/go-dappley/logic/lblockchain"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 
 	"github.com/dappley/go-dappley/common/log"
 	"github.com/dappley/go-dappley/logic/downloadmanager"
 	logger "github.com/sirupsen/logrus"
 
 	"github.com/dappley/go-dappley/config"
-	"github.com/dappley/go-dappley/config/pb"
+	configpb "github.com/dappley/go-dappley/config/pb"
 	"github.com/dappley/go-dappley/consensus"
 	"github.com/dappley/go-dappley/core/account"
 	"github.com/dappley/go-dappley/logic"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/dappley/go-dappley/metrics/logMetrics"
 	"github.com/dappley/go-dappley/network"
@@ -43,8 +47,6 @@ import (
 	"github.com/dappley/go-dappley/storage"
 	"github.com/dappley/go-dappley/vm"
 	"github.com/spf13/viper"
-	"net/http"
-	_ "net/http/pprof"
 )
 
 const (
@@ -106,7 +108,7 @@ func main() {
 	nodeAddr := conf.GetNodeConfig().GetNodeAddress()
 	blkSizeLimit := conf.GetNodeConfig().GetBlkSizeLimit() * size1kB
 	scManager := vm.NewV8EngineManager(account.NewAddress(nodeAddr))
-	txPool := transactionpool.NewTransactionPool(node, txPoolLimit)
+	txPool := ltransactionpool.NewTransactionPoolLogic(node, txPoolLimit)
 	bc, err := lblockchain.GetBlockchain(db, conss, txPool, scManager, int(blkSizeLimit))
 	if err != nil {
 		bc, err = logic.CreateBlockchain(account.NewAddress(genesisAddr), db, conss, txPool, scManager, int(blkSizeLimit))

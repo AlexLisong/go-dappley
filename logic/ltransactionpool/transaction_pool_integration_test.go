@@ -16,7 +16,7 @@
 // along with the go-dappley library.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-package transactionpool
+package ltransactionpool
 
 import (
 	"testing"
@@ -132,7 +132,7 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 	dependentTx4.Sign(account.GenerateKeyPairByPrivateKey(prikey4).GetPrivateKey(), []*utxo.UTXO{&tx2Utxo2, &tx2Utxo3})
 	dependentTx5.Sign(account.GenerateKeyPairByPrivateKey(prikey1).GetPrivateKey(), []*utxo.UTXO{&tx2Utxo4, &tx2Utxo5})
 
-	txPool := NewTransactionPool(nil, 6000000)
+	txPool := NewTransactionPoolLogic(nil, 6000000)
 	// verify dependent txs 2,3,4,5 with relation:
 	//tx1 (UtxoIndex)
 	//|     \
@@ -177,7 +177,7 @@ func TestTransactionPool_VerifyDependentTransactions(t *testing.T) {
 }
 
 func TestTransactionPool_PopTransactionsWithMostTipsNoDependency(t *testing.T) {
-	txPool := NewTransactionPool(nil, 1280000)
+	txPool := NewTransactionPoolLogic(nil, 1280000)
 	utxoIndex := lutxo.NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 	var prevUTXOs []*utxo.UTXOTx
 	var txs []*transaction.Transaction
@@ -206,7 +206,7 @@ func TestTransactionPool_PopTransactionsWithMostTipsNoDependency(t *testing.T) {
 }
 
 func TestTransactionPool_PopTransactionsWithMostTipsWithDependency(t *testing.T) {
-	txPool := NewTransactionPool(nil, 1280000)
+	txPool := NewTransactionPoolLogic(nil, 1280000)
 	utxoIndex := lutxo.NewUTXOIndex(storage.NewUTXODBIO(storage.NewRamStorage()))
 	var accounts []*account.Account
 	var txs []*transaction.Transaction

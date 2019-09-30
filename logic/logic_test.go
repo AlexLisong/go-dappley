@@ -20,11 +20,11 @@ package logic
 
 import (
 	"fmt"
-	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
 	"os"
 	"testing"
 
-	"github.com/dappley/go-dappley/logic/transactionpool"
+	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 
 	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/core/account"
@@ -77,7 +77,7 @@ func TestCreateBlockchain(t *testing.T) {
 	//create a blockchain
 	policy := &mocks.LIBPolicy{}
 	policy.On("GetMinConfirmationNum").Return(3)
-	_, err := CreateBlockchain(addr, store, policy, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	_, err := CreateBlockchain(addr, store, policy, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 1000000)
 	assert.Nil(t, err)
 }
 
@@ -108,7 +108,7 @@ func TestCreateBlockchainWithInvalidAddress(t *testing.T) {
 	defer store.Close()
 
 	//create a blockchain with an invalid address
-	bc, err := CreateBlockchain(account.NewAddress(InvalidAddress), store, nil, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	bc, err := CreateBlockchain(account.NewAddress(InvalidAddress), store, nil, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 1000000)
 	assert.Equal(t, ErrInvalidAddress, err)
 	assert.Nil(t, bc)
 }
@@ -122,7 +122,7 @@ func TestGetBalance(t *testing.T) {
 	//create a blockchain
 	policy := &mocks.LIBPolicy{}
 	policy.On("GetMinConfirmationNum").Return(3)
-	bc, err := CreateBlockchain(addr, store, policy, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	bc, err := CreateBlockchain(addr, store, policy, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 1000000)
 	assert.Nil(t, err)
 	assert.NotNil(t, bc)
 
@@ -142,7 +142,7 @@ func TestGetBalanceWithInvalidAddress(t *testing.T) {
 	//create a blockchain
 	policy := &mocks.LIBPolicy{}
 	policy.On("GetMinConfirmationNum").Return(3)
-	bc, err := CreateBlockchain(addr, store, policy, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	bc, err := CreateBlockchain(addr, store, policy, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 1000000)
 	assert.Nil(t, err)
 	assert.NotNil(t, bc)
 
@@ -173,7 +173,7 @@ func TestGetAllAddresses(t *testing.T) {
 	//create a blockchain
 	policy := &mocks.LIBPolicy{}
 	policy.On("GetMinConfirmationNum").Return(3)
-	bc, err := CreateBlockchain(addr, store, policy, transactionpool.NewTransactionPool(nil, 128), nil, 1000000)
+	bc, err := CreateBlockchain(addr, store, policy, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 1000000)
 	assert.Nil(t, err)
 	assert.NotNil(t, bc)
 

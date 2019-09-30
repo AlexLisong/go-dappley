@@ -2,13 +2,14 @@ package logMetrics
 
 import (
 	"encoding/json"
-	"github.com/dappley/go-dappley/logic/blockproducer"
 	"os"
 	"runtime"
 	"time"
 
+	"github.com/dappley/go-dappley/logic/blockproducer"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
+
 	"github.com/dappley/go-dappley/logic/lblockchain"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 	"github.com/dappley/go-dappley/network"
 	"github.com/dappley/go-dappley/rpc"
 	"github.com/shirou/gopsutil/cpu"
@@ -92,7 +93,7 @@ func getCPUPercent() interface{} {
 }
 
 func getTransactionPoolSize() interface{} {
-	return transactionpool.MetricsTransactionPoolSize.Count()
+	return ltransactionpool.MetricsTransactionPoolSize.Count()
 }
 
 type RequestStats struct {

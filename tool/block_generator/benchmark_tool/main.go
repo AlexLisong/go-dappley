@@ -11,10 +11,10 @@ import (
 	"github.com/dappley/go-dappley/core/blockchain"
 	"github.com/dappley/go-dappley/core/blockproducerinfo"
 	"github.com/dappley/go-dappley/logic/lblockchain"
-	"github.com/dappley/go-dappley/logic/transactionpool"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 
 	"github.com/dappley/go-dappley/config"
-	"github.com/dappley/go-dappley/config/pb"
+	configpb "github.com/dappley/go-dappley/config/pb"
 	"github.com/dappley/go-dappley/consensus"
 	"github.com/dappley/go-dappley/core/account"
 	"github.com/dappley/go-dappley/logic"
@@ -182,7 +182,7 @@ func prepareNode(db storage.Storage) (*lblockchain.BlockchainManager, *network.N
 	conss.SetDynasty(dynasty)
 	node := network.NewNode(db, nil)
 	txPoolLimit := uint32(2000)
-	txPool := transactionpool.NewTransactionPool(node, txPoolLimit)
+	txPool := ltransactionpool.NewTransactionPoolLogic(node, txPoolLimit)
 	bc, err := lblockchain.GetBlockchain(db, conss, txPool, vm.NewV8EngineManager(account.Address{}), 1000000)
 	if err != nil {
 		bc, err = logic.CreateBlockchain(account.NewAddress(genesisAddrTest), db, conss, txPool, vm.NewV8EngineManager(account.Address{}), 1000000)

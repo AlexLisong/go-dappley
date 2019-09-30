@@ -22,13 +22,13 @@ import (
 	"testing"
 
 	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/scState"
 	"github.com/dappley/go-dappley/core/transaction"
 	"github.com/dappley/go-dappley/logic/lblock"
 	"github.com/dappley/go-dappley/logic/lutxo"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 
 	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/core/account"
@@ -47,7 +47,7 @@ func TestBlockchain_RollbackToABlockWithTransactions(t *testing.T) {
 	policy := &mocks.LIBPolicy{}
 	policy.On("GetMinConfirmationNum").Return(3)
 
-	bc := CreateBlockchain(coinbaseAddr, s, policy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
+	bc := CreateBlockchain(coinbaseAddr, s, policy, ltransactionpool.NewTransactionPoolLogic(nil, 128000), nil, 100000)
 
 	for i := 0; i < 3; i++ {
 		tailBlk, _ := bc.GetTailBlock()

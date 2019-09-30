@@ -29,8 +29,8 @@ import (
 	transactionpb "github.com/dappley/go-dappley/core/transaction/pb"
 	utxopb "github.com/dappley/go-dappley/core/utxo/pb"
 	"github.com/dappley/go-dappley/logic/ltransaction"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 	"github.com/dappley/go-dappley/logic/lutxo"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 
 	"github.com/dappley/go-dappley/core/block"
 	blockpb "github.com/dappley/go-dappley/core/block/pb"
@@ -361,12 +361,12 @@ func (rpcService *RpcService) RpcGetNewTransaction(in *rpcpb.GetNewTransactionRe
 		err := stream.Send(response)
 		if err != nil {
 			logger.WithError(err).Info("RPCService: failed to send transaction to account.")
-			rpcService.GetBlockchain().GetTxPool().EventBus.Unsubscribe(transactionpool.NewTransactionTopic, txHandler)
+			rpcService.GetBlockchain().GetTxPool().EventBus.Unsubscribe(ltransactionpool.NewTransactionTopic, txHandler)
 			quitCh <- true
 		}
 	}
 
-	rpcService.GetBlockchain().GetTxPool().EventBus.SubscribeAsync(transactionpool.NewTransactionTopic, txHandler, false)
+	rpcService.GetBlockchain().GetTxPool().EventBus.SubscribeAsync(ltransactionpool.NewTransactionTopic, txHandler, false)
 	<-quitCh
 	return nil
 }

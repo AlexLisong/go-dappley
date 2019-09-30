@@ -28,8 +28,8 @@ import (
 	"github.com/dappley/go-dappley/core/transaction"
 	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/ltransaction"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 	"github.com/dappley/go-dappley/logic/lutxo"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 
 	"github.com/dappley/go-dappley/common/hash"
 	"github.com/dappley/go-dappley/core"
@@ -58,7 +58,7 @@ type Blockchain struct {
 	db           storage.Storage
 	utxoDBIO     *storage.UTXODBIO
 	libPolicy    LIBPolicy
-	txPool       *transactionpool.TransactionPool
+	txPool       *ltransactionpool.TransactionPoolLogic
 	scManager    core.ScEngineManager
 	eventManager *scState.EventManager
 	blkSizeLimit int
@@ -66,7 +66,7 @@ type Blockchain struct {
 }
 
 // CreateBlockchain creates a new blockchain db
-func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIBPolicy, txPool *transactionpool.TransactionPool, scManager core.ScEngineManager, blkSizeLimit int) *Blockchain {
+func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIBPolicy, txPool *ltransactionpool.TransactionPoolLogic, scManager core.ScEngineManager, blkSizeLimit int) *Blockchain {
 	genesis := NewGenesisBlock(address, transaction.Subsidy)
 	bc := &Blockchain{
 		NewChain(genesis, db, libPolicy),
@@ -85,7 +85,7 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 	return bc
 }
 
-func GetBlockchain(db storage.Storage, libPolicy LIBPolicy, txPool *transactionpool.TransactionPool, scManager core.ScEngineManager, blkSizeLimit int) (*Blockchain, error) {
+func GetBlockchain(db storage.Storage, libPolicy LIBPolicy, txPool *ltransactionpool.TransactionPoolLogic, scManager core.ScEngineManager, blkSizeLimit int) (*Blockchain, error) {
 
 	bc := &Blockchain{
 		LoadBlockchainFromDb(db, libPolicy),
@@ -121,7 +121,7 @@ func (bc *Blockchain) GetSCManager() core.ScEngineManager {
 	return bc.scManager
 }
 
-func (bc *Blockchain) GetTxPool() *transactionpool.TransactionPool {
+func (bc *Blockchain) GetTxPool() *ltransactionpool.TransactionPoolLogic {
 	return bc.txPool
 }
 

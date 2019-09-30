@@ -8,8 +8,8 @@ import (
 	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/lblock"
 	"github.com/dappley/go-dappley/logic/lblockchain/mocks"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 	"github.com/dappley/go-dappley/logic/lutxo"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 	"github.com/dappley/go-dappley/storage"
 )
 
@@ -29,7 +29,7 @@ func GenerateMockBlockchainWithCoinbaseTxOnly(size int) *Blockchain {
 	libPolicy.On("GetProducers").Return(nil)
 	libPolicy.On("GetMinConfirmationNum").Return(6)
 	libPolicy.On("IsBypassingLibCheck").Return(true)
-	bc := CreateBlockchain(addr, s, libPolicy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
+	bc := CreateBlockchain(addr, s, libPolicy, ltransactionpool.NewTransactionPoolLogic(nil, 128000), nil, 100000)
 
 	for i := 0; i < size; i++ {
 		tailBlk, _ := bc.GetTailBlock()

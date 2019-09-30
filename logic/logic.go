@@ -24,8 +24,8 @@ import (
 
 	"github.com/dappley/go-dappley/core/transaction"
 	"github.com/dappley/go-dappley/logic/lblockchain"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 	"github.com/dappley/go-dappley/logic/lutxo"
-	"github.com/dappley/go-dappley/logic/transactionpool"
 
 	"github.com/dappley/go-dappley/common"
 	"github.com/dappley/go-dappley/core/account"
@@ -50,13 +50,13 @@ var (
 )
 
 //create a blockchain
-func CreateBlockchain(address account.Address, db storage.Storage, libPolicy lblockchain.LIBPolicy, txPool *transactionpool.TransactionPool, scManager *vm.V8EngineManager, blkSizeLimit int) (*lblockchain.Blockchain, error) {
+func CreateBlockchain(address account.Address, db storage.Storage, libPolicy lblockchain.LIBPolicy, ltxPool *ltransactionpool.TransactionPoolLogic, scManager *vm.V8EngineManager, blkSizeLimit int) (*lblockchain.Blockchain, error) {
 	addressAccount := account.NewContractAccountByAddress(address)
 	if !addressAccount.IsValid() {
 		return nil, ErrInvalidAddress
 	}
 
-	bc := lblockchain.CreateBlockchain(address, db, libPolicy, txPool, scManager, blkSizeLimit)
+	bc := lblockchain.CreateBlockchain(address, db, libPolicy, ltxPool, scManager, blkSizeLimit)
 
 	return bc, nil
 }

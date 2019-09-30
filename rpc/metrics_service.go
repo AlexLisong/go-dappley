@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/dappley/go-dappley/logic/lblockchain"
-	"github.com/dappley/go-dappley/logic/transactionpool"
+	"github.com/dappley/go-dappley/logic/ltransactionpool"
 
 	"github.com/shirou/gopsutil/process"
 	logger "github.com/sirupsen/logrus"
@@ -165,7 +165,7 @@ func getCPUPercent() metricspb.StatValue {
 
 func getTransactionPoolSize() metricspb.StatValue {
 	return &metricspb.Stat_TransactionPoolSize{
-		TransactionPoolSize: transactionpool.MetricsTransactionPoolSize.Count(),
+		TransactionPoolSize: ltransactionpool.MetricsTransactionPoolSize.Count(),
 	}
 }
 
