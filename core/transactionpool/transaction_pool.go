@@ -6,6 +6,7 @@ import (
 
 	transactionpb "github.com/dappley/go-dappley/core/transaction/pb"
 	transactionPoolpb "github.com/dappley/go-dappley/core/transactionpool/pb"
+	logger "github.com/sirupsen/logrus"
 )
 
 type TransactionPool struct {
@@ -44,4 +45,26 @@ func (txPool *TransactionPool) FromProto(pb proto.Message) {
 	txPool.TipOrder = pb.(*transactionPoolpb.TransactionPool).TipOrder
 	txPool.CurrSize = pb.(*transactionPoolpb.TransactionPool).CurrSize
 
+}
+
+func (txPool *TransactionPool) Serialize() []byte {
+
+	rawBytes, err := proto.Marshal(txPool.ToProto())
+	if err != nil {
+		logger.WithError(err).Panic("TxPool: failed to serialize TxPool transactions.")
+	}
+	return rawBytes
+}
+
+func DeserializeTxPool(d []byte) *TransactionPool {
+
+	txPoolProto := &transactionPoolpb.TransactionPool{}
+	err := proto.Unmarshal(d, txPoolProto)
+	if err != nil {
+		println(err)
+		logger.WithError(err).Panic("TxPool: failed to deserialize TxPool transactions.")
+	}
+	txPool := NewTransactionPool()
+	txPool.FromProto(txPoolProto)
+	return txPool
 }
