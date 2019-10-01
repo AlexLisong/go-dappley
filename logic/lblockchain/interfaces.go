@@ -7,11 +7,6 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-type Storage interface {
-	Get(key []byte) ([]byte, error)
-	Put(key []byte, val []byte) error
-}
-
 type Consensus interface {
 	Validate(*block.Block) bool
 }

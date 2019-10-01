@@ -2,11 +2,12 @@ package lblockchain
 
 import (
 	"errors"
+
 	"github.com/dappley/go-dappley/common/hash"
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/blockchain"
-	"github.com/dappley/go-dappley/util"
-	"github.com/hashicorp/golang-lru"
+	"github.com/dappley/go-dappley/storage"
+	lru "github.com/hashicorp/golang-lru"
 	logger "github.com/sirupsen/logrus"
 )
 
@@ -23,12 +24,12 @@ var (
 type Chain struct {
 	bc        blockchain.Blockchain
 	forks     *blockchain.BlockPool
-	db        Storage
+	dbio      *storage.ChainDBIO
 	LIBPolicy LIBPolicy
 	forkHash  *lru.Cache //key: block height; value: block hash
 }
 
-func NewChain(genesis *block.Block, db Storage, policy LIBPolicy) *Chain {
+func NewChain(genesis *block.Block, db storage.Storage, policy LIBPolicy) *Chain {
 
 	if genesis == nil {
 		return nil
@@ -37,7 +38,7 @@ func NewChain(genesis *block.Block, db Storage, policy LIBPolicy) *Chain {
 	chain := &Chain{
 		bc:        blockchain.NewBlockchain(genesis.GetHash(), genesis.GetHash()),
 		forks:     blockchain.NewBlockPool(genesis),
-		db:        db,
+		dbio:      storage.NewChainDBIO(db),
 		LIBPolicy: policy,
 	}
 
@@ -46,24 +47,14 @@ func NewChain(genesis *block.Block, db Storage, policy LIBPolicy) *Chain {
 	return chain
 }
 
-func LoadBlockchainFromDb(db Storage, policy LIBPolicy) *Chain {
-
-	LIBHash, err := db.Get(libKey)
-	if err != nil {
-		logger.WithError(err).Error("Blockchain: Getting last irreversible block hash failed during loading blockchain from database")
-		return nil
-	}
-
-	LIBRawBytes, err := db.Get(LIBHash)
-	if err != nil {
-		logger.WithError(err).Error("Blockchain: Getting last irreversible block failed during loading blockchain from database")
-		return nil
-	}
+func LoadBlockchainFromDb(db storage.Storage, policy LIBPolicy) *Chain {
+	dbio := storage.NewChainDBIO(db)
+	bc, forks := dbio.LoadBlockchainFromDb()
 
 	chain := &Chain{
-		bc:        blockchain.NewBlockchain(LIBHash, LIBHash),
-		forks:     blockchain.NewBlockPool(block.Deserialize(LIBRawBytes)),
-		db:        db,
+		bc:        bc,
+		forks:     forks,
+		dbio:      dbio,
 		LIBPolicy: policy,
 	}
 	chain.forkHash, _ = lru.New(policy.GetMinConfirmationNum() + 1)
@@ -79,7 +70,7 @@ func (bc *Chain) GetLIBHash() hash.Hash {
 }
 
 func (bc *Chain) SetTailBlockHash(hash hash.Hash) error {
-	err := bc.db.Put(tipKey, hash)
+	err := bc.dbio.SetTailBlockHash(hash)
 	if err != nil {
 		return err
 	}
@@ -88,7 +79,7 @@ func (bc *Chain) SetTailBlockHash(hash hash.Hash) error {
 }
 
 func (bc *Chain) SetLIBHash(hash hash.Hash) error {
-	err := bc.db.Put(libKey, hash)
+	err := bc.dbio.SetLIBHash(hash)
 	if err != nil {
 		return err
 	}
@@ -102,11 +93,7 @@ func (bc *Chain) GetBlockByHash(hash hash.Hash) (*block.Block, error) {
 		return blk, nil
 	}
 
-	rawBytes, err := bc.db.Get(hash)
-	if err != nil {
-		return nil, ErrBlockDoesNotExist
-	}
-	return block.Deserialize(rawBytes), nil
+	return bc.dbio.GetBlockByHash(hash)
 
 }
 
@@ -146,7 +133,7 @@ func (bc *Chain) GetBlockByHeight(height uint64) (*block.Block, error) {
 		}
 		blkHash = v.(hash.Hash)
 	} else {
-		blkHash, err = bc.db.Get(util.UintToHex(height))
+		blkHash, err = bc.dbio.GetBlockHashByHeight(height)
 		if err != nil {
 			return nil, ErrBlockDoesNotExist
 		}
@@ -292,26 +279,7 @@ func (bc *Chain) updateForkHeightCache() {
 
 //AddBlockToDb record the new block in the database
 func (bc *Chain) AddBlockToDb(blk *block.Block) error {
-
-	logger.WithFields(logger.Fields{
-		"blkheight": blk.GetHeight(),
-		"blkHash":   blk.GetHash(),
-		"prevHash":  blk.GetPrevHash(),
-	}).Debug("AddBlockToDb")
-
-	err := bc.db.Put(blk.GetHash(), blk.Serialize())
-	if err != nil {
-		logger.WithError(err).Warn("Blockchain: failed to add blk to database!")
-		return err
-	}
-
-	err = bc.db.Put(util.UintToHex(blk.GetHeight()), blk.GetHash())
-	if err != nil {
-		logger.WithError(err).Warn("Blockchain: failed to index the blk by blk height in database!")
-		return err
-	}
-
-	return nil
+	return bc.dbio.AddBlockToDb(blk)
 }
 
 func (bc *Chain) IsBlockTooLow(blk *block.Block) bool {
@@ -321,7 +289,7 @@ func (bc *Chain) IsBlockTooLow(blk *block.Block) bool {
 func (bc *Chain) Iterator() *Chain {
 	return &Chain{
 		bc:    bc.bc,
-		db:    bc.db,
+		dbio:  bc.dbio,
 		forks: bc.forks,
 	}
 }

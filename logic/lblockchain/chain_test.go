@@ -1,7 +1,8 @@
 package lblockchain
 
 import (
-	"errors"
+	"testing"
+
 	"github.com/dappley/go-dappley/common/hash"
 	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/core/blockchain"
@@ -9,8 +10,6 @@ import (
 	"github.com/dappley/go-dappley/storage"
 	"github.com/dappley/go-dappley/util"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestChain_GetBlockByHash(t *testing.T) {
@@ -73,16 +72,13 @@ func TestChain_GetBlockByHash(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight))
-			db := &mocks.Storage{}
+			db := storage.NewRamStorage()
+			defer db.Close()
 			for _, blk := range tt.blocksInDb {
-				db.On("Get", []byte(blk.GetHash())).Return(blk.Serialize(), nil)
+				db.Put([]byte(blk.GetHash()), blk.Serialize())
 			}
-			db.On("Get", mock.MatchedBy(
-				func(blkHash hash.Hash) bool {
-					return true
-				})).Return(nil, errors.New("Error"))
-
-			bc := &Chain{forks: bp, db: db}
+			dbio := storage.NewChainDBIO(db)
+			bc := &Chain{forks: bp, dbio: dbio}
 			blk, err := bc.GetBlockByHash(tt.blkHash)
 			assert.Equal(t, tt.expectedBlk, blk)
 			assert.Equal(t, tt.expectedErr, err)
@@ -151,16 +147,12 @@ func TestChain_GetBlockByHeight(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight))
-			db := &mocks.Storage{}
+			db := storage.NewRamStorage()
+			defer db.Close()
 			for _, blk := range tt.blocksInDb {
-				db.On("Get", util.UintToHex(blk.GetHeight())).Return([]byte(blk.GetHash()), nil)
-				db.On("Get", []byte(blk.GetHash())).Return(blk.Serialize(), nil)
+				db.Put(util.UintToHex(blk.GetHeight()), []byte(blk.GetHash()))
+				db.Put([]byte(blk.GetHash()), blk.Serialize())
 			}
-			db.On("Get", mock.MatchedBy(
-				func(hash hash.Hash) bool {
-					return true
-				})).Return(nil, errors.New("Error"))
-			db.On("Put", mock.Anything, mock.Anything).Return(nil)
 
 			policy := &mocks.LIBPolicy{}
 			policy.On("GetMinConfirmationNum").Return(3)

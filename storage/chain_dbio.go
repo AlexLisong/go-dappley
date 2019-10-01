@@ -24,6 +24,10 @@ type ChainDBIO struct {
 	db Storage
 }
 
+func NewChainDBIO(db Storage) *ChainDBIO {
+	return &ChainDBIO{db}
+}
+
 func (dbio *ChainDBIO) SetTailBlockHash(hash hash.Hash) error {
 	err := dbio.db.Put(tipKey, hash)
 	if err != nil {
@@ -49,7 +53,6 @@ func (dbio *ChainDBIO) GetBlockByHash(hash hash.Hash) (*block.Block, error) {
 }
 
 func (dbio *ChainDBIO) GetBlockHashByHeight(height uint64) (hash.Hash, error) {
-
 	var blkHash hash.Hash
 	var err error
 
