@@ -95,10 +95,10 @@ func GenerateNewBlockChain(files []FileInfo, d *consensus.Dynasty, keys Keys, co
 	utxoIndexes := make([]*lutxo.UTXOIndex, len(files))
 	for i := range files {
 		parentBlks[i], _ = bcs[i].GetTailBlock()
-		utxoIndexes[i] = lutxo.NewUTXOIndex(bcs[i].GetUtxoDBIO())
+		utxoIndexes[i] = lutxo.NewUTXOIndex(bcs[i].GetDBIO().UtxoDBIO)
 		for j := 0; j < len(d.GetProducers()); j++ {
 			b := generateBlock(utxoIndexes[i], parentBlks[i], bcs[i], d, keys, []*transaction.Transaction{})
-			bcs[i].AddBlockToDb(b)
+			bcs[i].GetDBIO().AddBlockToDb(b)
 			parentBlks[i] = b
 		}
 	}
@@ -106,7 +106,7 @@ func GenerateNewBlockChain(files []FileInfo, d *consensus.Dynasty, keys Keys, co
 	//fund from miner
 	fundingBlock := generateFundingBlock(utxoIndexes[0], parentBlks[0], bcs[0], d, keys, addrs[0], key)
 	for idx := range files {
-		bcs[idx].AddBlockToDb(fundingBlock)
+		bcs[idx].GetDBIO().AddBlockToDb(fundingBlock)
 	}
 	parentBlks[0] = fundingBlock
 
@@ -114,7 +114,7 @@ func GenerateNewBlockChain(files []FileInfo, d *consensus.Dynasty, keys Keys, co
 	scblock, scAddr := generateSmartContractDeploymentBlock(utxoIndexes[0], parentBlks[0], bcs[0], d, keys, addrs[0], wm)
 	logger.Info("smart contract address:", scAddr.String())
 	for idx := range files {
-		bcs[idx].AddBlockToDb(scblock)
+		bcs[idx].GetDBIO().AddBlockToDb(scblock)
 	}
 	parentBlks[0] = scblock
 
@@ -142,10 +142,10 @@ func makeBlockChainToSize(utxoIndex *lutxo.UTXOIndex, parentBlk *block.Block, bc
 	for tailBlk.GetHeight() < uint64(size) {
 		txs := generateTransactions(utxoIndex, addrs, wm, scAddr)
 		b := generateBlock(utxoIndex, tailBlk, bc, d, keys, txs)
-		bc.AddBlockToDb(b)
+		bc.GetDBIO().AddBlockToDb(b)
 		tailBlk = b
 	}
-	bc.GetDb().Put([]byte("tailBlockHash"), tailBlk.GetHash())
+	bc.GetDBIO().ChainDBIO.SetTailBlockHash(tailBlk.GetHash())
 }
 
 func generateBlock(utxoIndex *lutxo.UTXOIndex, parentBlk *block.Block, bc *lblockchain.Blockchain, d *consensus.Dynasty, keys Keys, txs []*transaction.Transaction) *block.Block {

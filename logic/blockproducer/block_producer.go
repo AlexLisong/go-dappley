@@ -7,7 +7,6 @@ import (
 	"github.com/dappley/go-dappley/common/deadline"
 
 	"github.com/dappley/go-dappley/core/blockchain"
-	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/lblock"
 
 	"github.com/dappley/go-dappley/common"
@@ -104,7 +103,7 @@ func (bp *BlockProducer) prepareBlock(deadline deadline.Deadline) *lblockchain.B
 	}
 
 	// Retrieve all valid transactions from tx pool
-	utxoIndex := lutxo.NewUTXOIndex(bp.bm.Getblockchain().GetUtxoDBIO())
+	utxoIndex := lutxo.NewUTXOIndex(bp.bm.Getblockchain().GetDBIO().UtxoDBIO)
 
 	validTxs, state := bp.collectTransactions(utxoIndex, parentBlock, deadline)
 
@@ -126,16 +125,16 @@ func (bp *BlockProducer) collectTransactions(utxoIndex *lutxo.UTXOIndex, parentB
 
 	var validTxs []*transaction.Transaction
 	totalSize := 0
-
-	scStorage := lScState.LoadScStateFromDatabase(bp.bm.Getblockchain().GetDb())
+	bc := bp.bm.Getblockchain()
+	scStorage := bc.GetDBIO().ScStateDBIO.LoadScStateFromDatabase()
 	engine := vm.NewV8Engine()
 	defer engine.DestroyEngine()
 	rewards := make(map[string]string)
 	currBlkHeight := parentBlk.GetHeight() + 1
 
-	for totalSize < bp.bm.Getblockchain().GetBlockSizeLimit() && bp.bm.Getblockchain().GetTxPool().GetNumOfTxInPool() > 0 && !deadline.IsPassed() {
+	for totalSize < bc.GetBlockSizeLimit() && bc.GetTxPool().GetNumOfTxInPool() > 0 && !deadline.IsPassed() {
 
-		txNode := bp.bm.Getblockchain().GetTxPool().PopTransactionWithMostTips(utxoIndex)
+		txNode := bc.GetTxPool().PopTransactionWithMostTips(utxoIndex)
 		if txNode == nil {
 			break
 		}
@@ -207,7 +206,7 @@ func (bp *BlockProducer) executeSmartContract(utxoIndex *lutxo.UTXOIndex,
 	txs []*transaction.Transaction, currBlkHeight uint64, parentBlk *block.Block) ([]*transaction.Transaction, *scState.ScState) {
 	//start a new smart contract engine
 
-	scStorage := lScState.LoadScStateFromDatabase(bp.bm.Getblockchain().GetDb())
+	scStorage := bp.bm.Getblockchain().GetDBIO().ScStateDBIO.LoadScStateFromDatabase()
 	engine := vm.NewV8Engine()
 	defer engine.DestroyEngine()
 	var generatedTXs []*transaction.Transaction

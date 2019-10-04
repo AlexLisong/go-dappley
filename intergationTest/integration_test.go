@@ -929,10 +929,11 @@ func Test_MultipleMinersWithDPOS(t *testing.T) {
 		dpos := consensus.NewDPOS(producer)
 		dpos.SetKey(keystrs[i])
 		dpos.SetDynasty(dynasty)
-		bc := lblockchain.CreateBlockchain(account.NewAddress(miners[0]), storage.NewRamStorage(), dpos, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 100000)
+		db := storage.NewRamStorage()
+		bc := lblockchain.CreateBlockchain(account.NewAddress(miners[0]), db, dpos, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 100000)
 		pool := blockchain.NewBlockPool(nil)
 
-		node := network.NewNode(bc.GetDb(), nil)
+		node := network.NewNode(db, nil)
 		node.Start(21200+i, "")
 		nodeArray = append(nodeArray, node)
 
@@ -993,10 +994,11 @@ func TestDPOS_UpdateLIB(t *testing.T) {
 		dpos := consensus.NewDPOS(producer)
 		dpos.SetKey(keystrs[i])
 		dpos.SetDynasty(dynasty)
-		bc := lblockchain.CreateBlockchain(account.NewAddress(miners[0]), storage.NewRamStorage(), dpos, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 100000)
+		db := storage.NewRamStorage()
+		bc := lblockchain.CreateBlockchain(account.NewAddress(miners[0]), db, dpos, ltransactionpool.NewTransactionPoolLogic(nil, 128), nil, 100000)
 		pool := blockchain.NewBlockPool(nil)
 
-		node := network.NewNode(bc.GetDb(), nil)
+		node := network.NewNode(db, nil)
 		node.Start(21200+i, "")
 		nodeArray = append(nodeArray, node)
 

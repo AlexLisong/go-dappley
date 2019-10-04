@@ -12,11 +12,6 @@ import (
 )
 
 var (
-	tipKey = []byte("tailBlockHash")
-	libKey = []byte("lastIrreversibleBlockHash")
-)
-
-var (
 	ErrBlockDoesNotExist = errors.New("block does not exist")
 	ErrBlockHeightTooLow = errors.New("block height too low")
 )

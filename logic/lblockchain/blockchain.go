@@ -27,7 +27,6 @@ import (
 	"github.com/dappley/go-dappley/core/scState"
 	"github.com/dappley/go-dappley/core/transaction"
 	"github.com/dappley/go-dappley/logic/lScState"
-	"github.com/dappley/go-dappley/logic/ltransaction"
 	"github.com/dappley/go-dappley/logic/ltransactionpool"
 	"github.com/dappley/go-dappley/logic/lutxo"
 
@@ -39,7 +38,6 @@ import (
 
 	"github.com/dappley/go-dappley/core/account"
 	"github.com/dappley/go-dappley/storage"
-	"github.com/dappley/go-dappley/util"
 	"github.com/jinzhu/copier"
 	logger "github.com/sirupsen/logrus"
 )
@@ -55,8 +53,7 @@ var (
 
 type Blockchain struct {
 	bc           *Chain
-	db           storage.Storage
-	utxoDBIO     *storage.UTXODBIO
+	dbio         *storage.BlockChainDBIO
 	libPolicy    LIBPolicy
 	txPool       *ltransactionpool.TransactionPoolLogic
 	scManager    core.ScEngineManager
@@ -68,10 +65,10 @@ type Blockchain struct {
 // CreateBlockchain creates a new blockchain db
 func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIBPolicy, txPool *ltransactionpool.TransactionPoolLogic, scManager core.ScEngineManager, blkSizeLimit int) *Blockchain {
 	genesis := NewGenesisBlock(address, transaction.Subsidy)
+
 	bc := &Blockchain{
 		NewChain(genesis, db, libPolicy),
-		db,
-		storage.NewUTXODBIO(db),
+		storage.NewBlockChainDBIO(db),
 		libPolicy,
 		txPool,
 		scManager,
@@ -79,7 +76,7 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 		blkSizeLimit,
 		&sync.Mutex{},
 	}
-	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoDBIO())
+	utxoIndex := lutxo.NewUTXOIndex(bc.dbio.UtxoDBIO)
 	utxoIndex.UpdateUtxoState(genesis.GetTransactions())
 	utxoIndex.Save()
 	return bc
@@ -89,8 +86,7 @@ func GetBlockchain(db storage.Storage, libPolicy LIBPolicy, txPool *ltransaction
 
 	bc := &Blockchain{
 		LoadBlockchainFromDb(db, libPolicy),
-		db,
-		storage.NewUTXODBIO(db),
+		storage.NewBlockChainDBIO(db),
 		libPolicy,
 		txPool,
 		scManager,
@@ -101,12 +97,8 @@ func GetBlockchain(db storage.Storage, libPolicy LIBPolicy, txPool *ltransaction
 	return bc, nil
 }
 
-func (bc *Blockchain) GetDb() storage.Storage {
-	return bc.db
-}
-
-func (bc *Blockchain) GetUtxoDBIO() *storage.UTXODBIO {
-	return bc.utxoDBIO
+func (bc *Blockchain) GetDBIO() *storage.BlockChainDBIO {
+	return bc.dbio
 }
 
 func (bc *Blockchain) GetTailBlockHash() hash.Hash {
@@ -190,8 +182,8 @@ func (bc *Blockchain) AddBlockWithContext(ctx *BlockContext) error {
 	tailBlk, _ := bc.GetTailBlock()
 	bcTemp.runScheduleEvents(ctx, tailBlk)
 
-	bcTemp.db.EnableBatch()
-	defer bcTemp.db.DisableBatch()
+	bcTemp.dbio.EnableBatch()
+	defer bcTemp.dbio.DisableBatch()
 
 	//update Blockchain
 	err := bc.bc.AddBlock(ctx.Block)
@@ -210,7 +202,7 @@ func (bc *Blockchain) AddBlockWithContext(ctx *BlockContext) error {
 	//update Transaction pool
 	bcTemp.GetTxPool().CleanUpMinedTxs(ctx.Block.GetTransactions())
 	bcTemp.GetTxPool().ResetPendingTransactions()
-	err = bcTemp.GetTxPool().SaveToDatabase(bc.db)
+	err = bcTemp.GetTxPool().SaveToDatabase(bc.dbio.TxPoolDBIO)
 
 	if err != nil {
 		blockLogger.Warn("Blockchain: failed to save txpool to database.")
@@ -218,7 +210,7 @@ func (bc *Blockchain) AddBlockWithContext(ctx *BlockContext) error {
 	}
 
 	//update smart contract state
-	err = lScState.Save(bc.db, ctx.Block.GetHash(), ctx.State)
+	err = lScState.Save(bc.dbio.ScStateDBIO, ctx.Block.GetHash(), ctx.State)
 	if err != nil {
 		blockLogger.Warn("Blockchain: failed to save scState to database.")
 		return err
@@ -227,7 +219,7 @@ func (bc *Blockchain) AddBlockWithContext(ctx *BlockContext) error {
 	bc.updateTransactionJournal(tailBlk)
 
 	// Flush batch changes to storage
-	err = bcTemp.db.Flush()
+	err = bcTemp.dbio.Flush()
 	if err != nil {
 		blockLogger.Error("Blockchain: failed to update tail block hash and UTXO index!")
 		return err
@@ -255,7 +247,8 @@ func (bc *Blockchain) updateTransactionJournal(oldTailBlk *block.Block) error {
 		}
 
 		for _, tx := range currBlk.GetTransactions() {
-			err := ltransaction.PutTxJournal(*tx, bc.db)
+			err := bc.dbio.TxJournalBDIO.PutTxJournal(*tx)
+
 			if err != nil {
 				logger.WithError(err).Warn("Blockchain: failed to add blk transaction journals into database!")
 				return err
@@ -315,31 +308,6 @@ func (bc *Blockchain) String() string {
 	return buffer.String()
 }
 
-//AddBlockToDb record the new block in the database
-func (bc *Blockchain) AddBlockToDb(blk *block.Block) error {
-
-	err := bc.db.Put(blk.GetHash(), blk.Serialize())
-	if err != nil {
-		logger.WithError(err).Warn("Blockchain: failed to add blk to database!")
-		return err
-	}
-
-	err = bc.db.Put(util.UintToHex(blk.GetHeight()), blk.GetHash())
-	if err != nil {
-		logger.WithError(err).Warn("Blockchain: failed to index the blk by blk height in database!")
-		return err
-	}
-	// add transaction journals
-	for _, tx := range blk.GetTransactions() {
-		err = ltransaction.PutTxJournal(*tx, bc.db)
-		if err != nil {
-			logger.WithError(err).Warn("Blockchain: failed to add blk transaction journals into database!")
-			return err
-		}
-	}
-	return nil
-}
-
 func (bc *Blockchain) IsInBlockchain(hash hash.Hash) bool {
 	return bc.bc.IsInBlockchain(hash)
 }
@@ -378,8 +346,8 @@ func (bc *Blockchain) Rollback(targetHash hash.Hash, utxo *lutxo.UTXOIndex, scSt
 		}
 	}
 
-	bc.db.EnableBatch()
-	defer bc.db.DisableBatch()
+	bc.dbio.EnableBatch()
+	defer bc.dbio.DisableBatch()
 
 	err := bc.setTailBlockHash(parentblockHash)
 	if err != nil {
@@ -387,11 +355,11 @@ func (bc *Blockchain) Rollback(targetHash hash.Hash, utxo *lutxo.UTXOIndex, scSt
 		return false
 	}
 
-	bc.txPool.SaveToDatabase(bc.db)
+	bc.txPool.SaveToDatabase(bc.dbio.TxPoolDBIO)
 
 	utxo.Save()
-	lScState.SaveToDatabase(bc.db, scState)
-	bc.db.Flush()
+	bc.dbio.ScStateDBIO.SaveToDatabase(scState)
+	bc.dbio.Flush()
 
 	return true
 }

@@ -90,7 +90,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 	abnormalBlock := block.NewBlock([]*transaction.Transaction{&abnormalTX}, normalBlock, "")
 	abnormalBlock.SetHash(lblock.CalculateHash(abnormalBlock))
 	corruptedUTXOBlockchain := prepareBlockchainWithBlocks([]*block.Block{normalBlock, normalBlock2})
-	err := utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, corruptedUTXOBlockchain.GetUtxoDBIO()).Save()
+	err := utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, corruptedUTXOBlockchain.GetDBIO().UtxoDBIO).Save()
 	if err != nil {
 		logger.Fatal("TestGetUTXOIndexAtBlockHash: cannot corrupt the utxoIndex in database.")
 	}
@@ -118,60 +118,60 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 			name:     "current block",
 			bc:       bcs[0],
 			hash:     normalBlock.GetHash(),
-			expected: utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, bcs[0].GetUtxoDBIO()),
+			expected: utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, bcs[0].GetDBIO().UtxoDBIO),
 			err:      nil,
 		},
 		{
 			name:     "previous block",
 			bc:       bcs[1],
 			hash:     normalBlock.GetHash(),
-			expected: utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, bcs[1].GetUtxoDBIO()), // should not have utxo from normalTX2
+			expected: utxoIndexFromTXs([]*transaction.Transaction{&normalTX}, bcs[1].GetDBIO().UtxoDBIO), // should not have utxo from normalTX2
 			err:      nil,
 		},
 		{
 			name:     "block not found",
 			bc:       bcs[2],
 			hash:     hash.Hash("not there"),
-			expected: lutxo.NewUTXOIndex(bcs[2].GetUtxoDBIO()),
+			expected: lutxo.NewUTXOIndex(bcs[2].GetDBIO().UtxoDBIO),
 			err:      ErrBlockDoesNotExist,
 		},
 		{
 			name:     "no txs in blocks",
 			bc:       bcs[3],
 			hash:     emptyBlock.GetHash(),
-			expected: utxoIndexFromTXs(genesisBlock.GetTransactions(), bcs[3].GetUtxoDBIO()),
+			expected: utxoIndexFromTXs(genesisBlock.GetTransactions(), bcs[3].GetDBIO().UtxoDBIO),
 			err:      nil,
 		},
 		{
 			name:     "genesis block",
 			bc:       bcs[4],
 			hash:     genesisBlock.GetHash(),
-			expected: utxoIndexFromTXs(genesisBlock.GetTransactions(), bcs[4].GetUtxoDBIO()),
+			expected: utxoIndexFromTXs(genesisBlock.GetTransactions(), bcs[4].GetDBIO().UtxoDBIO),
 			err:      nil,
 		},
 		{
 			name:     "utxo not found",
 			bc:       bcs[5],
 			hash:     normalBlock.GetHash(),
-			expected: lutxo.NewUTXOIndex(bcs[5].GetUtxoDBIO()),
+			expected: lutxo.NewUTXOIndex(bcs[5].GetDBIO().UtxoDBIO),
 			err:      lutxo.ErrUTXONotFound,
 		},
 		{
 			name:     "corrupted utxoIndex",
 			bc:       bcs[6],
 			hash:     normalBlock.GetHash(),
-			expected: lutxo.NewUTXOIndex(bcs[6].GetUtxoDBIO()),
+			expected: lutxo.NewUTXOIndex(bcs[6].GetDBIO().UtxoDBIO),
 			err:      lutxo.ErrUTXONotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			utxoIndex := lutxo.NewUTXOIndex(tt.bc.utxoDBIO)
+			utxoIndex := lutxo.NewUTXOIndex(tt.bc.GetDBIO().UtxoDBIO)
 			logger.WithFields(logger.Fields{
 				"normalBlkHash": utxoIndex.GetAllUTXOsByPubKeyHash(acc.GetPubKeyHash()),
 			}).Error(tt.bc.GetTailBlockHash())
-			_, _, err = RevertUtxoAndScStateAtBlockHash(tt.bc.GetDb(), tt.bc, tt.hash)
+			_, _, err = RevertUtxoAndScStateAtBlockHash(tt.bc.GetDBIO(), tt.bc, tt.hash)
 			if !assert.Equal(t, tt.err, err) {
 				return
 			}
@@ -194,7 +194,7 @@ func TestCopyAndRevertUtxos(t *testing.T) {
 	bc.AddBlockWithContext(PrepareBlockContext(bc, blk1))
 	bc.AddBlockWithContext(PrepareBlockContext(bc, blk2))
 
-	utxoIndex := lutxo.NewUTXOIndex(bc.GetUtxoDBIO())
+	utxoIndex := lutxo.NewUTXOIndex(bc.GetDBIO().UtxoDBIO)
 
 	var address1Bytes = []byte("address1000000000000000000000000")
 	var address2Bytes = []byte("address2000000000000000000000000")
@@ -212,7 +212,7 @@ func TestCopyAndRevertUtxos(t *testing.T) {
 	assert.Equal(t, 2, addr2UTXOs.Size())
 
 	// Rollback to blk1, address1 has a $5 utxo and a $7 utxo, total $12, and address2 has nothing
-	indexSnapshot, _, err := RevertUtxoAndScStateAtBlockHash(db, bc, blk1.GetHash())
+	indexSnapshot, _, err := RevertUtxoAndScStateAtBlockHash(bc.GetDBIO(), bc, blk1.GetHash())
 	if err != nil {
 		panic(err)
 	}

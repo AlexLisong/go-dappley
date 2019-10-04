@@ -292,10 +292,10 @@ func TestTransactionPool_SaveAndLoadDatabase(t *testing.T) {
 	txPool.Push(tx3)
 	txPool.Push(tx4)
 	assert.Equal(t, 4, len(txPool.GetTransactions()))
-	db := storage.NewRamStorage()
-	err := txPool.SaveToDatabase(db)
+	dbio := storage.NewTXPoolDBIO(storage.NewRamStorage())
+	err := txPool.SaveToDatabase(dbio)
 	assert.Nil(t, err)
-	txPool2 := LoadTxPoolFromDatabase(db, nil, 128000)
+	txPool2 := LoadTxPoolFromDatabase(dbio, nil, 128000)
 	assert.Equal(t, 4, len(txPool2.GetTransactions()))
 }
 

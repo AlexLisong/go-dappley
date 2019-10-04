@@ -4,19 +4,8 @@ import (
 	"testing"
 
 	"github.com/dappley/go-dappley/core/scState"
-	"github.com/dappley/go-dappley/storage"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestScState_LoadFromDatabase(t *testing.T) {
-	db := storage.NewRamStorage()
-	ss := scState.NewScState()
-	ss.Set("addr1", "key1", "Value")
-	err := SaveToDatabase(db, ss)
-	assert.Nil(t, err)
-	ss1 := LoadScStateFromDatabase(db)
-	assert.Equal(t, "Value", ss1.Get("addr1", "key1"))
-}
 
 func TestScState_RevertState(t *testing.T) {
 

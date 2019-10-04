@@ -12,40 +12,20 @@ const (
 	scStateMapKey = "scState"
 )
 
-//LoadScStateFromDatabase loads states from database
-func LoadScStateFromDatabase(db storage.Storage) *scState.ScState {
-
-	rawBytes, err := db.Get([]byte(scStateMapKey))
-
-	if err != nil && err.Error() == storage.ErrKeyInvalid.Error() || len(rawBytes) == 0 {
-		return scState.NewScState()
-	}
-	return scState.DeserializeScState(rawBytes)
-}
-
-func Save(db storage.Storage, blkHash hash.Hash, ss *scState.ScState) error {
-	scStateOld := LoadScStateFromDatabase(db)
+func Save(dbio *storage.SCStateDBIO, blkHash hash.Hash, ss *scState.ScState) error {
+	scStateOld := dbio.LoadScStateFromDatabase()
 	change := scState.NewChangeLog()
 	change.Log = findChangedValue(ss, scStateOld)
 
-	err := db.Put([]byte(scStateLogKey+blkHash.String()), change.SerializeChangeLog())
+	err := dbio.SaveChangeLog(change, blkHash)
 	if err != nil {
 		return err
 	}
 
-	err = db.Put([]byte(scStateMapKey), ss.Serialize())
-	if err != nil {
-		return err
-	}
+	err = dbio.SaveToDatabase(ss)
 
 	return err
 }
-
-//SaveToDatabase saves states to database
-func SaveToDatabase(db storage.Storage, ss *scState.ScState) error {
-	return db.Put([]byte(scStateMapKey), ss.Serialize())
-}
-
 func findChangedValue(newScState *scState.ScState, oldScState *scState.ScState) map[string]map[string]string {
 	change := make(map[string]map[string]string)
 
@@ -87,8 +67,8 @@ func findChangedValue(newScState *scState.ScState, oldScState *scState.ScState) 
 	return change
 }
 
-func RevertState(db storage.Storage, prevHash hash.Hash, ss *scState.ScState) error {
-	changelog := getChangeLog(db, prevHash)
+func RevertState(dbio *storage.SCStateDBIO, prevHash hash.Hash, ss *scState.ScState) error {
+	changelog := dbio.GetChangeLog(prevHash)
 	if len(changelog) < 1 {
 		return nil
 	}
@@ -99,19 +79,6 @@ func RevertState(db storage.Storage, prevHash hash.Hash, ss *scState.ScState) er
 	//}
 
 	return nil
-}
-
-func getChangeLog(db storage.Storage, prevHash hash.Hash) map[string]map[string]string {
-	change := make(map[string]map[string]string)
-
-	rawBytes, err := db.Get([]byte(scStateLogKey + prevHash.String()))
-
-	if err != nil && err.Error() == storage.ErrKeyInvalid.Error() || len(rawBytes) == 0 {
-		return change
-	}
-	change = scState.DeserializeChangeLog(rawBytes).Log
-
-	return change
 }
 
 func deleteLog(db storage.Storage, prevHash hash.Hash) error {

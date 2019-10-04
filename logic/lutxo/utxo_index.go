@@ -57,23 +57,6 @@ func GetStorageKey(txid []byte) []byte {
 	return []byte(key)
 }
 
-// Returns transaction log data from database
-func GetTxOutput(vin transactionbase.TXInput, db storage.Storage) (transactionbase.TXOutput, error) {
-	key := GetStorageKey(vin.Txid)
-	value, err := db.Get(key)
-	if err != nil {
-		return transactionbase.TXOutput{}, err
-	}
-	txJournal, err := transaction.DeserializeJournal(value)
-	if err != nil {
-		return transactionbase.TXOutput{}, err
-	}
-	if vin.Vout >= len(txJournal.Vout) {
-		return transactionbase.TXOutput{}, ErrVoutNotFound
-	}
-	return txJournal.Vout[vin.Vout], nil
-}
-
 // NewUTXOIndex initializes an UTXOIndex instance
 func NewUTXOIndex(utxoDBIO *storage.UTXODBIO) *UTXOIndex {
 	return &UTXOIndex{
@@ -206,18 +189,18 @@ func (utxos *UTXOIndex) UpdateUtxoState(txs []*transaction.Transaction) {
 
 // UndoTxsInBlock compute the (previous) UTXOIndex resulted from undoing the transactions in given blk.
 // Note that the operation does not save the index to db.
-func (utxos *UTXOIndex) UndoTxsInBlock(blk *block.Block, db storage.Storage) error {
+func (utxos *UTXOIndex) UndoTxsInBlock(blk *block.Block) error {
 
 	for i := len(blk.GetTransactions()) - 1; i >= 0; i-- {
 		tx := blk.GetTransactions()[i]
-		err := utxos.excludeVoutsInTx(tx, db)
+		err := utxos.excludeVoutsInTx(tx)
 		if err != nil {
 			return err
 		}
 		if tx.IsCoinbase() || tx.IsRewardTx() || tx.IsGasRewardTx() || tx.IsGasChangeTx() {
 			continue
 		}
-		err = utxos.unspendVinsInTx(tx, db)
+		err = utxos.unspendVinsInTx(tx)
 		if err != nil {
 			return err
 		}
@@ -226,7 +209,7 @@ func (utxos *UTXOIndex) UndoTxsInBlock(blk *block.Block, db storage.Storage) err
 }
 
 // excludeVoutsInTx removes the UTXOs generated in a transaction from the UTXOIndex.
-func (utxos *UTXOIndex) excludeVoutsInTx(tx *transaction.Transaction, db storage.Storage) error {
+func (utxos *UTXOIndex) excludeVoutsInTx(tx *transaction.Transaction) error {
 	for i, vout := range tx.Vout {
 		err := utxos.removeUTXO(vout.Account.GetPubKeyHash(), tx.ID, i)
 		if err != nil {
@@ -236,9 +219,9 @@ func (utxos *UTXOIndex) excludeVoutsInTx(tx *transaction.Transaction, db storage
 	return nil
 }
 
-func getTXOutputSpent(in transactionbase.TXInput, db storage.Storage) (transactionbase.TXOutput, int, error) {
+func getTXOutputSpent(in transactionbase.TXInput, dbio *storage.UTXODBIO) (transactionbase.TXOutput, int, error) {
 
-	vout, err := GetTxOutput(in, db)
+	vout, err := dbio.GetTxOutput(in)
 
 	if err != nil {
 		return transactionbase.TXOutput{}, 0, ErrTXInputInvalid
@@ -247,9 +230,9 @@ func getTXOutputSpent(in transactionbase.TXInput, db storage.Storage) (transacti
 }
 
 // unspendVinsInTx adds UTXOs back to the UTXOIndex as a result of undoing the spending of the UTXOs in a transaction.
-func (utxos *UTXOIndex) unspendVinsInTx(tx *transaction.Transaction, db storage.Storage) error {
+func (utxos *UTXOIndex) unspendVinsInTx(tx *transaction.Transaction) error {
 	for _, vin := range tx.Vin {
-		vout, voutIndex, err := getTXOutputSpent(vin, db)
+		vout, voutIndex, err := getTXOutputSpent(vin, utxos.utxoDBIO)
 		if err != nil {
 			return err
 		}

@@ -27,7 +27,6 @@ import (
 	"github.com/dappley/go-dappley/core/transaction"
 	transactionpb "github.com/dappley/go-dappley/core/transaction/pb"
 	"github.com/dappley/go-dappley/core/transactionpool"
-	transactionPoolpb "github.com/dappley/go-dappley/core/transactionpool/pb"
 	"github.com/dappley/go-dappley/logic/ltransaction"
 	"github.com/dappley/go-dappley/logic/lutxo"
 
@@ -504,47 +503,21 @@ func (txPool *TransactionPoolLogic) insertIntoTipOrder(txNode *transaction.Trans
 	txPool.txpool.TipOrder[index] = hex.EncodeToString(txNode.Value.ID)
 }
 
-func deserializeTxPool(d []byte) *TransactionPoolLogic {
-
-	txPoolProto := &transactionPoolpb.TransactionPool{}
-	err := proto.Unmarshal(d, txPoolProto)
-	if err != nil {
-		println(err)
-		logger.WithError(err).Panic("TxPool: failed to deserialize TxPool transactions.")
-	}
-	txpoollogic := NewTransactionPoolLogic(nil, 1)
-	txPool := transactionpool.NewTransactionPool()
-	txPool.FromProto(txPoolProto)
-	txpoollogic.txpool = txPool
-	MetricsTransactionPoolSize.Clear()
-	MetricsTransactionPoolSize.Inc(int64(len(txpoollogic.txpool.Txs)))
-	return txpoollogic
-}
-
-func LoadTxPoolFromDatabase(db storage.Storage, netService NetService, txPoolSize uint32) *TransactionPoolLogic {
-	rawBytes, err := db.Get([]byte(TxPoolDbKey))
-	if err != nil && err.Error() == storage.ErrKeyInvalid.Error() || len(rawBytes) == 0 {
-		return NewTransactionPoolLogic(netService, txPoolSize)
-	}
-	txPool := deserializeTxPool(rawBytes)
+func LoadTxPoolFromDatabase(dbio *storage.TXPoolDBIO, netService NetService, txPoolSize uint32) *TransactionPoolLogic {
+	pool := dbio.GetTxPool()
+	txPool := NewTransactionPoolLogic(netService, txPoolSize)
+	txPool.txpool = pool
 	txPool.sizeLimit = txPoolSize
 	txPool.netService = netService
+	MetricsTransactionPoolSize.Clear()
+	MetricsTransactionPoolSize.Inc(int64(len(txPool.txpool.Txs)))
 	return txPool
 }
 
-func (txPool *TransactionPoolLogic) serialize() []byte {
-
-	rawBytes, err := proto.Marshal(txPool.txpool.ToProto())
-	if err != nil {
-		logger.WithError(err).Panic("TxPool: failed to serialize TxPool transactions.")
-	}
-	return rawBytes
-}
-
-func (txPool *TransactionPoolLogic) SaveToDatabase(db storage.Storage) error {
+func (txPool *TransactionPoolLogic) SaveToDatabase(dbio *storage.TXPoolDBIO) error {
 	txPool.mutex.Lock()
 	defer txPool.mutex.Unlock()
-	return db.Put([]byte(TxPoolDbKey), txPool.serialize())
+	return dbio.SaveTxPool(txPool.txpool)
 }
 
 //getMinTipTransaction gets the transaction.TransactionNode with minimum tip
