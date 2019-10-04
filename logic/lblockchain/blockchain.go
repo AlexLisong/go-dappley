@@ -65,10 +65,10 @@ type Blockchain struct {
 // CreateBlockchain creates a new blockchain db
 func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIBPolicy, txPool *ltransactionpool.TransactionPoolLogic, scManager core.ScEngineManager, blkSizeLimit int) *Blockchain {
 	genesis := NewGenesisBlock(address, transaction.Subsidy)
-
+	dbio := storage.NewBlockChainDBIO(db)
 	bc := &Blockchain{
-		NewChain(genesis, db, libPolicy),
-		storage.NewBlockChainDBIO(db),
+		NewChain(genesis, dbio.ChainDBIO, libPolicy),
+		dbio,
 		libPolicy,
 		txPool,
 		scManager,
@@ -83,10 +83,10 @@ func CreateBlockchain(address account.Address, db storage.Storage, libPolicy LIB
 }
 
 func GetBlockchain(db storage.Storage, libPolicy LIBPolicy, txPool *ltransactionpool.TransactionPoolLogic, scManager core.ScEngineManager, blkSizeLimit int) (*Blockchain, error) {
-
+	dbio := storage.NewBlockChainDBIO(db)
 	bc := &Blockchain{
-		LoadBlockchainFromDb(db, libPolicy),
-		storage.NewBlockChainDBIO(db),
+		LoadBlockchainFromDb(dbio.ChainDBIO, libPolicy),
+		dbio,
 		libPolicy,
 		txPool,
 		scManager,

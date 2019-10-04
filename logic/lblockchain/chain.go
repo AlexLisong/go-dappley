@@ -24,7 +24,7 @@ type Chain struct {
 	forkHash  *lru.Cache //key: block height; value: block hash
 }
 
-func NewChain(genesis *block.Block, db storage.Storage, policy LIBPolicy) *Chain {
+func NewChain(genesis *block.Block, dbio *storage.ChainDBIO, policy LIBPolicy) *Chain {
 
 	if genesis == nil {
 		return nil
@@ -33,7 +33,7 @@ func NewChain(genesis *block.Block, db storage.Storage, policy LIBPolicy) *Chain
 	chain := &Chain{
 		bc:        blockchain.NewBlockchain(genesis.GetHash(), genesis.GetHash()),
 		forks:     blockchain.NewBlockPool(genesis),
-		dbio:      storage.NewChainDBIO(db),
+		dbio:      dbio,
 		LIBPolicy: policy,
 	}
 
@@ -42,8 +42,7 @@ func NewChain(genesis *block.Block, db storage.Storage, policy LIBPolicy) *Chain
 	return chain
 }
 
-func LoadBlockchainFromDb(db storage.Storage, policy LIBPolicy) *Chain {
-	dbio := storage.NewChainDBIO(db)
+func LoadBlockchainFromDb(dbio *storage.ChainDBIO, policy LIBPolicy) *Chain {
 	bc, forks := dbio.LoadBlockchainFromDb()
 
 	chain := &Chain{

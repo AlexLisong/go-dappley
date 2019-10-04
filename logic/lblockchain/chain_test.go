@@ -148,6 +148,7 @@ func TestChain_GetBlockByHeight(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight))
 			db := storage.NewRamStorage()
+			dbio := storage.NewChainDBIO(db)
 			defer db.Close()
 			for _, blk := range tt.blocksInDb {
 				db.Put(util.UintToHex(blk.GetHeight()), []byte(blk.GetHash()))
@@ -159,7 +160,7 @@ func TestChain_GetBlockByHeight(t *testing.T) {
 
 			bc := NewChain(
 				blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight),
-				db,
+				dbio,
 				policy)
 			bc.forks = bp
 			bc.SetTailBlockHash(bp.GetHighestBlock().GetHash())
@@ -336,13 +337,13 @@ func TestChain_AddBlock(t *testing.T) {
 			//Prepare blockchain
 			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, tt.libBlk)
 			db := storage.NewRamStorage()
-
+			dbio := storage.NewChainDBIO(db)
 			libPolicy := &mocks.LIBPolicy{}
 			libPolicy.On("GetMinConfirmationNum").Return(tt.libMinNumOfBlocks)
 
 			bc := NewChain(
 				tt.libBlk,
-				db,
+				dbio,
 				libPolicy)
 			bc.forks = bp
 			bc.SetTailBlockHash(bp.GetHighestBlock().GetHash())

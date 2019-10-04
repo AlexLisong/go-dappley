@@ -73,17 +73,8 @@ func RevertState(dbio *storage.SCStateDBIO, prevHash hash.Hash, ss *scState.ScSt
 		return nil
 	}
 	revertState(changelog, ss)
-	//err := deleteLog(db, prevHash)
-	//if err != nil {
-	//	return err
-	//}
 
 	return nil
-}
-
-func deleteLog(db storage.Storage, prevHash hash.Hash) error {
-	err := db.Del([]byte(scStateLogKey + prevHash.String()))
-	return err
 }
 
 func revertState(changelog map[string]map[string]string, ss *scState.ScState) {
