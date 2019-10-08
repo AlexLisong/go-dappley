@@ -165,7 +165,7 @@ func (bc *Blockchain) GetState() blockchain.BlockchainState {
 	return bc.bc.bc.GetState()
 }
 
-func (bc *Blockchain) MergeFork(forkBlks []*block.Block, forkParentHash hash.Hash) error {
+func (bc *Blockchain) SwitchFork(forkBlks []*block.Block, forkParentHash hash.Hash) error {
 
 	//find parent block
 	if len(forkBlks) == 0 {

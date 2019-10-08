@@ -184,7 +184,7 @@ func (bm *BlockchainManager) Push(blk *block.Block, pid networkmodel.PeerInfo) {
 	}
 
 	bm.blockchain.SetState(blockchain.BlockchainSync)
-	_ = bm.blockchain.MergeFork(fork, forkHeadBlk.GetPrevHash())
+	_ = bm.blockchain.SwitchFork(fork, forkHeadBlk.GetPrevHash())
 	bm.blockPool.RemoveFork(fork)
 	bm.blockchain.SetState(blockchain.BlockchainReady)
 	return
