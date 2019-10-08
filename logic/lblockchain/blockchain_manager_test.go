@@ -171,7 +171,7 @@ func TestGetUTXOIndexAtBlockHash(t *testing.T) {
 			logger.WithFields(logger.Fields{
 				"normalBlkHash": utxoIndex.GetAllUTXOsByPubKeyHash(acc.GetPubKeyHash()),
 			}).Error(tt.bc.GetTailBlockHash())
-			_, _, err = RevertUtxoAndScStateAtBlockHash(tt.bc.GetDBIO(), tt.bc, tt.hash)
+			_, _, err = RevertUtxoAndScStateAtBlockHash(tt.bc, tt.hash)
 			if !assert.Equal(t, tt.err, err) {
 				return
 			}
@@ -212,7 +212,7 @@ func TestCopyAndRevertUtxos(t *testing.T) {
 	assert.Equal(t, 2, addr2UTXOs.Size())
 
 	// Rollback to blk1, address1 has a $5 utxo and a $7 utxo, total $12, and address2 has nothing
-	indexSnapshot, _, err := RevertUtxoAndScStateAtBlockHash(bc.GetDBIO(), bc, blk1.GetHash())
+	indexSnapshot, _, err := RevertUtxoAndScStateAtBlockHash(bc, blk1.GetHash())
 	if err != nil {
 		panic(err)
 	}

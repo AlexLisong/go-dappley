@@ -165,6 +165,69 @@ func (bc *Blockchain) GetState() blockchain.BlockchainState {
 	return bc.bc.bc.GetState()
 }
 
+func (bc *Blockchain) MergeFork(forkBlks []*block.Block, forkParentHash hash.Hash) error {
+
+	//find parent block
+	if len(forkBlks) == 0 {
+		return nil
+	}
+	forkHeadBlock := forkBlks[len(forkBlks)-1]
+	if forkHeadBlock == nil {
+		return nil
+	}
+
+	//verify transactions in the fork
+	utxo, scState, err := RevertUtxoAndScStateAtBlockHash(bc, forkParentHash)
+	if err != nil {
+		logger.Error("BlockchainManager: blockchain is corrupted! Delete the database file and resynchronize to the network.")
+		return err
+	}
+	rollBackUtxo := utxo.DeepCopy()
+	rollScState := scState.DeepCopy()
+
+	parentBlk, err := bc.GetBlockByHash(forkParentHash)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+			"hash":  forkParentHash.String(),
+		}).Error("BlockchainManager: get fork parent block failed.")
+	}
+
+	firstCheck := true
+
+	for i := len(forkBlks) - 1; i >= 0; i-- {
+		logger.WithFields(logger.Fields{
+			"height": forkBlks[i].GetHeight(),
+			"hash":   forkBlks[i].GetHash().String(),
+		}).Debug("BlockchainManager: is verifying a block in the fork.")
+
+		if !lblock.VerifyTransactions(forkBlks[i], utxo, scState, parentBlk) {
+			return ErrTransactionVerifyFailed
+		}
+
+		if !bc.CheckLibPolicy(forkBlks[i]) {
+			return ErrProducerNotEnough
+		}
+
+		if firstCheck {
+			firstCheck = false
+			bc.Rollback(forkParentHash, rollBackUtxo, rollScState)
+		}
+
+		ctx := BlockContext{Block: forkBlks[i], UtxoIndex: utxo, State: scState}
+		err = bc.AddBlockWithContext(&ctx)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"error":  err,
+				"height": forkBlks[i].GetHeight(),
+			}).Error("BlockchainManager: add fork to tail failed.")
+		}
+		parentBlk = forkBlks[i]
+	}
+
+	return nil
+}
+
 func (bc *Blockchain) AddBlockWithContext(ctx *BlockContext) error {
 	// Atomically set tail block hash and update UTXO index in db
 	bc.mutex.Lock()
@@ -457,4 +520,57 @@ func (bc *Blockchain) updateLIB(currBlkHeight uint64) {
 	}
 
 	bc.bc.SetLIBHash(LIBBlk.GetHash())
+}
+
+// RevertUtxoAndScStateAtBlockHash returns the previous snapshot of UTXOIndex when the block of given hash was the tail block.
+func RevertUtxoAndScStateAtBlockHash(bc *Blockchain, hash hash.Hash) (*lutxo.UTXOIndex, *scState.ScState, error) {
+	index := lutxo.NewUTXOIndex(bc.dbio.UtxoDBIO)
+	scState := bc.dbio.ScStateDBIO.LoadScStateFromDatabase()
+	bci := bc.Iterator()
+
+	// Start from the tail of blockchain, compute the previous UTXOIndex by undoing transactions
+	// in the block, until the block hash matches.
+	for {
+		block, err := bci.Next()
+		logger.WithFields(logger.Fields{
+			"currBlkHeight":      block.GetHeight(),
+			"currBlkHash":        block.GetHash(),
+			"rollbackTargetHash": hash,
+		}).Error("GetNextBlock")
+		if bytes.Compare(block.GetHash(), hash) == 0 {
+			break
+		}
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if len(block.GetPrevHash()) == 0 {
+			logger.WithFields(logger.Fields{
+				"currBlkHeight":      block.GetHeight(),
+				"currBlkHash":        block.GetHash(),
+				"rollbackTargetHash": hash,
+			}).Error("Reached the beginning of the blockchain")
+			return nil, nil, ErrBlockDoesNotExist
+		}
+
+		err = index.UndoTxsInBlock(block)
+
+		if err != nil {
+			logger.WithError(err).WithFields(logger.Fields{
+				"hash": block.GetHash(),
+			}).Warn("BlockchainManager: failed to calculate previous state of UTXO index for the block")
+			return nil, nil, err
+		}
+
+		err = lScState.RevertState(bc.dbio.ScStateDBIO, block.GetHash(), scState)
+		if err != nil {
+			logger.WithError(err).WithFields(logger.Fields{
+				"hash": block.GetHash(),
+			}).Warn("BlockchainManager: failed to calculate previous state of scState for the block")
+			return nil, nil, err
+		}
+	}
+
+	return index, scState, nil
 }

@@ -18,8 +18,6 @@
 package lblockchain
 
 import (
-	"bytes"
-
 	"github.com/pkg/errors"
 
 	"github.com/dappley/go-dappley/common/hash"
@@ -27,14 +25,10 @@ import (
 	"github.com/dappley/go-dappley/core/block"
 	blockpb "github.com/dappley/go-dappley/core/block/pb"
 	"github.com/dappley/go-dappley/core/blockchain"
-	"github.com/dappley/go-dappley/core/scState"
-	"github.com/dappley/go-dappley/logic/lScState"
 	"github.com/dappley/go-dappley/logic/lblock"
-	"github.com/dappley/go-dappley/logic/lutxo"
 
 	lblockchainpb "github.com/dappley/go-dappley/logic/lblockchain/pb"
 	"github.com/dappley/go-dappley/network/networkmodel"
-	"github.com/dappley/go-dappley/storage"
 	"github.com/golang/protobuf/proto"
 	logger "github.com/sirupsen/logrus"
 )
@@ -190,73 +184,10 @@ func (bm *BlockchainManager) Push(blk *block.Block, pid networkmodel.PeerInfo) {
 	}
 
 	bm.blockchain.SetState(blockchain.BlockchainSync)
-	_ = bm.MergeFork(fork, forkHeadBlk.GetPrevHash())
+	_ = bm.blockchain.MergeFork(fork, forkHeadBlk.GetPrevHash())
 	bm.blockPool.RemoveFork(fork)
 	bm.blockchain.SetState(blockchain.BlockchainReady)
 	return
-}
-
-func (bm *BlockchainManager) MergeFork(forkBlks []*block.Block, forkParentHash hash.Hash) error {
-
-	//find parent block
-	if len(forkBlks) == 0 {
-		return nil
-	}
-	forkHeadBlock := forkBlks[len(forkBlks)-1]
-	if forkHeadBlock == nil {
-		return nil
-	}
-
-	//verify transactions in the fork
-	utxo, scState, err := RevertUtxoAndScStateAtBlockHash(bm.blockchain.dbio, bm.blockchain, forkParentHash)
-	if err != nil {
-		logger.Error("BlockchainManager: blockchain is corrupted! Delete the database file and resynchronize to the network.")
-		return err
-	}
-	rollBackUtxo := utxo.DeepCopy()
-	rollScState := scState.DeepCopy()
-
-	parentBlk, err := bm.blockchain.GetBlockByHash(forkParentHash)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-			"hash":  forkParentHash.String(),
-		}).Error("BlockchainManager: get fork parent block failed.")
-	}
-
-	firstCheck := true
-
-	for i := len(forkBlks) - 1; i >= 0; i-- {
-		logger.WithFields(logger.Fields{
-			"height": forkBlks[i].GetHeight(),
-			"hash":   forkBlks[i].GetHash().String(),
-		}).Debug("BlockchainManager: is verifying a block in the fork.")
-
-		if !lblock.VerifyTransactions(forkBlks[i], utxo, scState, parentBlk) {
-			return ErrTransactionVerifyFailed
-		}
-
-		if !bm.Getblockchain().CheckLibPolicy(forkBlks[i]) {
-			return ErrProducerNotEnough
-		}
-
-		if firstCheck {
-			firstCheck = false
-			bm.blockchain.Rollback(forkParentHash, rollBackUtxo, rollScState)
-		}
-
-		ctx := BlockContext{Block: forkBlks[i], UtxoIndex: utxo, State: scState}
-		err = bm.blockchain.AddBlockWithContext(&ctx)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"error":  err,
-				"height": forkBlks[i].GetHeight(),
-			}).Error("BlockchainManager: add fork to tail failed.")
-		}
-		parentBlk = forkBlks[i]
-	}
-
-	return nil
 }
 
 //RequestBlock sends a requestBlock command to its peer with pid through network module
@@ -322,59 +253,6 @@ func (bm *BlockchainManager) SendBlockHandler(input interface{}) {
 		//relay the original command
 		bm.netService.Relay(command.GetCommand(), networkmodel.PeerInfo{}, networkmodel.HighPriorityCommand)
 	}
-}
-
-// RevertUtxoAndScStateAtBlockHash returns the previous snapshot of UTXOIndex when the block of given hash was the tail block.
-func RevertUtxoAndScStateAtBlockHash(dbio *storage.BlockChainDBIO, bc *Blockchain, hash hash.Hash) (*lutxo.UTXOIndex, *scState.ScState, error) {
-	index := lutxo.NewUTXOIndex(dbio.UtxoDBIO)
-	scState := dbio.ScStateDBIO.LoadScStateFromDatabase()
-	bci := bc.Iterator()
-
-	// Start from the tail of blockchain, compute the previous UTXOIndex by undoing transactions
-	// in the block, until the block hash matches.
-	for {
-		block, err := bci.Next()
-		logger.WithFields(logger.Fields{
-			"currBlkHeight":      block.GetHeight(),
-			"currBlkHash":        block.GetHash(),
-			"rollbackTargetHash": hash,
-		}).Error("GetNextBlock")
-		if bytes.Compare(block.GetHash(), hash) == 0 {
-			break
-		}
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if len(block.GetPrevHash()) == 0 {
-			logger.WithFields(logger.Fields{
-				"currBlkHeight":      block.GetHeight(),
-				"currBlkHash":        block.GetHash(),
-				"rollbackTargetHash": hash,
-			}).Error("Reached the beginning of the blockchain")
-			return nil, nil, ErrBlockDoesNotExist
-		}
-
-		err = index.UndoTxsInBlock(block)
-
-		if err != nil {
-			logger.WithError(err).WithFields(logger.Fields{
-				"hash": block.GetHash(),
-			}).Warn("BlockchainManager: failed to calculate previous state of UTXO index for the block")
-			return nil, nil, err
-		}
-
-		err = lScState.RevertState(dbio.ScStateDBIO, block.GetHash(), scState)
-		if err != nil {
-			logger.WithError(err).WithFields(logger.Fields{
-				"hash": block.GetHash(),
-			}).Warn("BlockchainManager: failed to calculate previous state of scState for the block")
-			return nil, nil, err
-		}
-	}
-
-	return index, scState, nil
 }
 
 /* NumForks returns the number of forks in the BlockPool and the height of the current longest fork */
