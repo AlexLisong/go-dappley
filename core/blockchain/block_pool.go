@@ -192,6 +192,26 @@ func (pool *BlockPool) GetFork(parentHash hash.Hash) []*block.Block {
 	return getBlocksFromTrees(root.GetLongestPath())
 }
 
+func (pool *BlockPool) GetForkChoice(parentHash hash.Hash) *block.Block {
+	var temp *block.Block
+	root := pool.findLongestChain(parentHash)
+	path := root.GetLongestPath()
+
+	if len(path) <= 0 {
+		return nil
+	}
+
+	for _, value := range path {
+		v := value.GetValue().(*block.Block)
+		if temp.GetHeight() > v.GetHeight() {
+			temp = v
+		}
+
+	}
+
+	return temp
+}
+
 func (pool *BlockPool) findLongestChain(parentHash hash.Hash) *common.TreeNode {
 
 	longest := int64(0)
@@ -209,6 +229,14 @@ func (pool *BlockPool) findLongestChain(parentHash hash.Hash) *common.TreeNode {
 		}
 	}
 	return longestForkHead
+}
+
+func (pool *BlockPool) RemoveBlock(block *block.Block) {
+	pool.forkHeadsMutex.Lock()
+	defer pool.forkHeadsMutex.Unlock()
+	pool.blkCache.Remove(block.GetHash().String())
+	delete(pool.orphans, block.GetHash().String())
+	logger.Debug("BlockPool: merge finished or exited, setting syncstate to false.")
 }
 
 func (pool *BlockPool) RemoveFork(fork []*block.Block) {

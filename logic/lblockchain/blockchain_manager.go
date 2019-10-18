@@ -118,7 +118,7 @@ func (bm *BlockchainManager) Getblockchain() *Blockchain {
 }
 
 func (bm *BlockchainManager) GetblockPool() *blockchain.BlockPool {
-	return bm.blockPool
+	return bm.blockchain.bc.forks
 }
 
 func (bm *BlockchainManager) VerifyBlock(blk *block.Block) bool {
