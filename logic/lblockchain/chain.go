@@ -212,6 +212,10 @@ func (bc *Chain) AddBlock(blk *block.Block) error {
 	return nil
 }
 
+func (bc *Chain) GetHighestBlock() *block.Block {
+	return bc.forks.GetHighestBlock()
+}
+
 func (bc *Chain) updateBlockchainInfo() {
 	bc.updateTailBlockInfo()
 	bc.updateLIBInfo()
