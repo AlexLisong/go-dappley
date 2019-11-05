@@ -350,6 +350,52 @@ func (bc *Chain) GetNumOfForks() int64 {
 	return bc.forks.GetNumOfForks()
 }
 
+func (bc *Chain) FindCommonAncestor(blk1 *block.Block, blk2 *block.Block) *block.Block {
+	if !bc.IsInBlockchain(blk1.GetHash()) || blk1.GetHeight() < bc.GetLIBHeight() {
+		return nil
+	}
+
+	if !bc.IsInBlockchain(blk2.GetHash()) || blk2.GetHeight() < bc.GetLIBHeight() {
+		return nil
+	}
+
+	var err error
+	fork1Hashes := make(map[string]bool)
+
+	currBlk := blk1
+	for currBlk.GetHeight() >= bc.GetLIBHeight() {
+		fork1Hashes[currBlk.GetHash().String()] = true
+
+		if currBlk.GetHeight() == 0 {
+			break
+		}
+		currBlk, err = bc.GetBlockByHash(currBlk.GetPrevHash())
+		if err != nil {
+			return nil
+		}
+	}
+
+	currBlk = blk2
+
+	for currBlk.GetHeight() >= bc.GetLIBHeight() {
+
+		if fork1Hashes[currBlk.GetHash().String()] {
+			return currBlk
+		}
+
+		if currBlk.GetHeight() == 0 {
+			return nil
+		}
+
+		currBlk, err = bc.GetBlockByHash(currBlk.GetPrevHash())
+		if err != nil {
+			return nil
+		}
+	}
+
+	return nil
+}
+
 func (bc *Chain) DeepCopy() *Chain {
 	newCopy := &Chain{}
 	copier.Copy(newCopy, bc)
