@@ -349,7 +349,7 @@ func TestChain_AddBlock(t *testing.T) {
 			bc.SetTailBlockHash(bp.GetHighestBlock().GetHash())
 
 			for _, blk := range tt.blocksInDb {
-				bc.AddBlockToDb(blk)
+				bc.SaveBlockToDb(blk)
 			}
 
 			bc.updateForkHeightCache()

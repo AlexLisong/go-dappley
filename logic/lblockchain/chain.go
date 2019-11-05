@@ -2,6 +2,7 @@ package lblockchain
 
 import (
 	"errors"
+	"github.com/jinzhu/copier"
 
 	"github.com/dappley/go-dappley/common/hash"
 	"github.com/dappley/go-dappley/core/block"
@@ -38,7 +39,7 @@ func NewChain(genesis *block.Block, dbio *storage.ChainDBIO, policy LIBPolicy) *
 	}
 
 	chain.forkHash, _ = lru.New(policy.GetMinConfirmationNum() + 1)
-	chain.AddBlockToDb(genesis)
+	chain.SaveBlockToDb(genesis)
 	return chain
 }
 
@@ -64,6 +65,11 @@ func (bc *Chain) GetLIBHash() hash.Hash {
 }
 
 func (bc *Chain) SetTailBlockHash(hash hash.Hash) error {
+
+	if !bc.IsInBlockchain(hash) {
+		return ErrBlockDoesNotExist
+	}
+
 	err := bc.dbio.SetTailBlockHash(hash)
 	if err != nil {
 		return err
@@ -73,11 +79,41 @@ func (bc *Chain) SetTailBlockHash(hash hash.Hash) error {
 }
 
 func (bc *Chain) SetLIBHash(hash hash.Hash) error {
-	err := bc.dbio.SetLIBHash(hash)
+
+	newLIB, err := bc.GetBlockByHash(hash)
+
 	if err != nil {
-		return err
+		return ErrBlockDoesNotExist
 	}
+
+	oldLIB, err := bc.GetLIB()
+	if err != nil {
+		logger.WithError(err).Panic("Blockchain: Failed during saving LIB")
+	}
+
+	if newLIB.GetHeight() <= oldLIB.GetHeight() {
+		return ErrBlockHeightTooLow
+	}
+
+	currBlk := newLIB
+	for !currBlk.GetHash().Equals(oldLIB.GetHash()) {
+		bc.SaveBlockToDb(currBlk)
+
+		currBlk, err = bc.GetBlockByHash(currBlk.GetPrevHash())
+		if err != nil {
+			logger.WithError(errors.New("Can not get block")).Panic("Blockchain: Failed during saving LIB")
+		}
+	}
+
+	bc.forks.UpdateRootBlock(newLIB)
+
+	err = bc.dbio.SetLIBHash(hash)
+	if err != nil {
+		logger.WithError(err).Panic("Blockchain: Filed to save LIB hash")
+	}
+
 	bc.bc.SetLIBHash(hash)
+
 	return nil
 }
 
@@ -145,34 +181,34 @@ func (bc *Chain) AddBlock(blk *block.Block) error {
 		return ErrBlockHeightTooLow
 	}
 
-	blockLogger := logger.WithFields(logger.Fields{
-		"new_blk_height":           blk.GetHeight(),
-		"new_blk_hash":             blk.GetHash().String(),
-		"new_blk_num_of_tx":        len(blk.GetTransactions()),
-		"lib_hash_before":          bc.GetLIBHash(),
-		"lib_height_before":        bc.GetLIBHeight(),
-		"tail_blk_hash_before":     bc.GetTailBlockHash(),
-		"blockchain_height_before": bc.GetMaxHeight(),
-	})
+	//blockLogger := logger.WithFields(logger.Fields{
+	//	"new_blk_height":           blk.GetHeight(),
+	//	"new_blk_hash":             blk.GetHash().String(),
+	//	"new_blk_num_of_tx":        len(blk.GetTransactions()),
+	//	"lib_hash_before":          bc.GetLIBHash(),
+	//	"lib_height_before":        bc.GetLIBHeight(),
+	//	"tail_blk_hash_before":     bc.GetTailBlockHash(),
+	//	"blockchain_height_before": bc.GetMaxHeight(),
+	//})
 
-	oldTailBlkhash := bc.GetTailBlockHash()
+	//oldTailBlkhash := bc.GetTailBlockHash()
 
 	bc.forks.AddBlock(blk)
 
-	newTailBlk := bc.forks.GetHighestBlock()
-	if newTailBlk.GetHash().Equals(oldTailBlkhash) {
-		blockLogger.Info("Chain: added a new block to forks")
-		return nil
-	}
-
-	bc.updateBlockchainInfo()
-
-	blockLogger.WithFields(logger.Fields{
-		"lib_hash_after":          bc.GetLIBHash(),
-		"lib_height_after":        bc.GetLIBHeight(),
-		"tail_blk_hash_after":     bc.GetTailBlockHash(),
-		"blockchain_height_after": bc.GetMaxHeight(),
-	}).Info("Chain: added a new block to tail")
+	//newTailBlk := bc.forks.GetHighestBlock()
+	//if newTailBlk.GetHash().Equals(oldTailBlkhash) {
+	//	blockLogger.Info("Chain: added a new block to forks")
+	//	return nil
+	//}
+	//
+	//bc.updateBlockchainInfo()
+	//
+	//blockLogger.WithFields(logger.Fields{
+	//	"lib_hash_after":          bc.GetLIBHash(),
+	//	"lib_height_after":        bc.GetLIBHeight(),
+	//	"tail_blk_hash_after":     bc.GetTailBlockHash(),
+	//	"blockchain_height_after": bc.GetMaxHeight(),
+	//}).Info("Chain: added a new block to tail")
 	return nil
 }
 
@@ -231,7 +267,7 @@ func (bc *Chain) saveLIB(newLIB *block.Block) {
 
 	currBlk := newLIB
 	for !currBlk.GetHash().Equals(oldLIB.GetHash()) {
-		bc.AddBlockToDb(currBlk)
+		bc.SaveBlockToDb(currBlk)
 
 		currBlk, err = bc.GetBlockByHash(currBlk.GetPrevHash())
 		if err != nil {
@@ -271,8 +307,8 @@ func (bc *Chain) updateForkHeightCache() {
 	}
 }
 
-//AddBlockToDb record the new block in the database
-func (bc *Chain) AddBlockToDb(blk *block.Block) error {
+//SaveBlockToDb record the new block in the database
+func (bc *Chain) SaveBlockToDb(blk *block.Block) error {
 	return bc.dbio.AddBlockToDb(blk)
 }
 
@@ -308,6 +344,12 @@ func (bc *Chain) IsInBlockchain(hash hash.Hash) bool {
 
 func (bc *Chain) GetNumOfForks() int64 {
 	return bc.forks.GetNumOfForks()
+}
+
+func (bc *Chain) DeepCopy() *Chain {
+	newCopy := &Chain{}
+	copier.Copy(newCopy, bc)
+	return newCopy
 }
 
 func calculateLIBHeight(tailBlkHeight uint64, minConfirmationNum int) uint64 {
