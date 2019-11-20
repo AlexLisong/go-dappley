@@ -174,6 +174,121 @@ func TestChain_GetBlockByHeight(t *testing.T) {
 	}
 }
 
+func TestChain_FindCommonAncestor(t *testing.T) {
+	tests := []struct {
+		name         string
+		serializedBp string
+		libBlkHash   string
+		libBlkHeight uint64
+		blocksInDb   []*block.Block
+		blk1         *block.Block
+		blk2         *block.Block
+		expectedBlk  *block.Block
+	}{
+		{
+			"common parent block",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
+			"1",
+			10,
+			[]*block.Block{
+				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
+				blockchain.CreateBlock(hash.Hash("b"), hash.Hash("a"), 8),
+				blockchain.CreateBlock(hash.Hash("c"), hash.Hash("b"), 9),
+				blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+			},
+			blockchain.CreateBlock(hash.Hash("5"), hash.Hash("4"), 13),
+			blockchain.CreateBlock(hash.Hash("6"), hash.Hash("4"), 13),
+			blockchain.CreateBlock(hash.Hash("4"), hash.Hash("3"), 12),
+		},
+		{
+			"common grandparent block",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
+			"1",
+			10,
+			[]*block.Block{
+				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
+				blockchain.CreateBlock(hash.Hash("b"), hash.Hash("a"), 8),
+				blockchain.CreateBlock(hash.Hash("c"), hash.Hash("b"), 9),
+				blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+			},
+			blockchain.CreateBlock(hash.Hash("5"), hash.Hash("4"), 13),
+			blockchain.CreateBlock(hash.Hash("9"), hash.Hash("2"), 13),
+			blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+		},
+		{
+			"common grandparent block",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
+			"1",
+			10,
+			[]*block.Block{
+				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
+				blockchain.CreateBlock(hash.Hash("b"), hash.Hash("a"), 8),
+				blockchain.CreateBlock(hash.Hash("c"), hash.Hash("b"), 9),
+				blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+			},
+			blockchain.CreateBlock(hash.Hash("5"), hash.Hash("4"), 13),
+			blockchain.CreateBlock(hash.Hash("9"), hash.Hash("2"), 13),
+			blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+		},
+		{
+			"invalid block",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10",
+			"1",
+			10,
+			[]*block.Block{
+				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
+				blockchain.CreateBlock(hash.Hash("b"), hash.Hash("a"), 8),
+				blockchain.CreateBlock(hash.Hash("c"), hash.Hash("b"), 9),
+				blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+			},
+			blockchain.CreateBlock(hash.Hash("5"), hash.Hash("4"), 13),
+			blockchain.CreateBlock(hash.Hash("12"), hash.Hash("1"), 13),
+			nil,
+		},
+		{
+			"fork",
+			"1#2, 1#3, 3#4, 4#5, 4#6, 4#7, 2#8, 2#9, 8#10, 13^13, 13#14",
+			"1",
+			10,
+			[]*block.Block{
+				blockchain.CreateBlock(hash.Hash("a"), nil, 7),
+				blockchain.CreateBlock(hash.Hash("b"), hash.Hash("a"), 8),
+				blockchain.CreateBlock(hash.Hash("c"), hash.Hash("b"), 9),
+				blockchain.CreateBlock(hash.Hash("1"), hash.Hash("c"), 10),
+			},
+			blockchain.CreateBlock(hash.Hash("5"), hash.Hash("4"), 13),
+			blockchain.CreateBlock(hash.Hash("14"), hash.Hash("13"), 14),
+			nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bp, _ := blockchain.DeserializeBlockPool(tt.serializedBp, blockchain.CreateBlock(hash.Hash(tt.libBlkHash), hash.Hash("c"), tt.libBlkHeight))
+			db := storage.NewRamStorage()
+			dbio := storage.NewChainDBIO(db)
+			defer db.Close()
+			for _, blk := range tt.blocksInDb {
+				db.Put(util.UintToHex(blk.GetHeight()), []byte(blk.GetHash()))
+				db.Put([]byte(blk.GetHash()), blk.Serialize())
+			}
+
+			policy := &mocks.LIBPolicy{}
+			policy.On("GetMinConfirmationNum").Return(3)
+
+			bc := NewChain(
+				blockchain.CreateBlock(hash.Hash(tt.libBlkHash), nil, tt.libBlkHeight),
+				dbio,
+				policy)
+			bc.forks = bp
+			bc.SetTailBlockHash(bp.GetHighestBlock().GetHash())
+			bc.updateForkHeightCache()
+
+			blk := bc.FindCommonAncestor(tt.blk1, tt.blk2)
+			assert.Equal(t, tt.expectedBlk, blk)
+		})
+	}
+}
+
 func TestChain_AddBlock(t *testing.T) {
 	tests := []struct {
 		name                  string
@@ -349,7 +464,7 @@ func TestChain_AddBlock(t *testing.T) {
 			bc.SetTailBlockHash(bp.GetHighestBlock().GetHash())
 
 			for _, blk := range tt.blocksInDb {
-				bc.AddBlockToDb(blk)
+				bc.SaveBlockToDb(blk)
 			}
 
 			bc.updateForkHeightCache()
