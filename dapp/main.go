@@ -20,6 +20,7 @@ package main
 
 import (
 	"flag"
+	"github.com/dappley/go-dappley/core/block"
 	"github.com/dappley/go-dappley/logic/blockproducer"
 
 	"github.com/dappley/go-dappley/core/blockchain"
@@ -108,18 +109,19 @@ func main() {
 	txPool := transactionpool.NewTransactionPool(node, txPoolLimit)
 	//utxo.NewPool()
 	bc, err := lblockchain.GetBlockchain(db, conss, txPool, scManager, int(blkSizeLimit))
+
+	var LIBBlk *block.Block = nil
 	if err != nil {
 		bc, err = logic.CreateBlockchain(account.NewAddress(genesisAddr), db, conss, txPool, scManager, int(blkSizeLimit))
 		if err != nil {
 			logger.Panic(err)
 		}
+	}else {
+		LIBBlk, _ = bc.GetLIB()
 	}
 	bc.SetState(blockchain.BlockchainInit)
 
-	LIBBlk, _ := bc.GetLIB()
-
 	bm := lblockchain.NewBlockchainManager(bc, blockchain.NewBlockPool(LIBBlk), node, conss)
-
 	if err != nil {
 		logger.WithError(err).Error("Failed to initialize the node! Exiting...")
 		return
