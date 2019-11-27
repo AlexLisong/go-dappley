@@ -99,7 +99,7 @@ func (pool *BlockPool) GetForkHead(blk *block.Block) *block.Block {
 
 	rst := ""
 	PrintTree(node.(*common.TreeNode).GetRoot(),"",true,&rst)
-	logger.Infof("tree: \n%s",rst)
+	logger.Printf("tree: \n%s",rst)
 	return node.(*common.TreeNode).GetRoot().GetValue().(*block.Block)
 }
 
