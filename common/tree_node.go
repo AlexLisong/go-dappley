@@ -74,6 +74,7 @@ func (t *TreeNode) GetLongestPath() []*TreeNode {
 	return append(path, t)
 }
 
+
 //Prune removes all nodes that are not current node's descendants, and call onDeleteCallback function when a node is deleted
 func (t *TreeNode) Prune(onDeleteCallbackFn func(node *TreeNode)) {
 	if t == nil {

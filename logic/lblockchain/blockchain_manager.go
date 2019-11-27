@@ -167,6 +167,7 @@ func (bm *BlockchainManager) Push(blk *block.Block, pid networkmodel.PeerInfo) {
 
 	bm.blockPool.AddBlock(blk)
 	forkHeadBlk := bm.blockPool.GetForkHead(blk)
+
 	if forkHeadBlk == nil {
 		return
 	}
@@ -184,6 +185,11 @@ func (bm *BlockchainManager) Push(blk *block.Block, pid networkmodel.PeerInfo) {
 	if fork == nil {
 		return
 	}
+	logger.WithField("db height",fork[0].GetHeight()).
+		WithField("producer",fork[0].GetProducer()).
+		WithField("hash",fork[0].GetHash()).
+		Info("fork header")
+
 
 	if fork[0].GetHeight() <= bm.Getblockchain().GetMaxHeight() {
 		return

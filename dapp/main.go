@@ -117,6 +117,7 @@ func main() {
 	bc.SetState(blockchain.BlockchainInit)
 
 	LIBBlk, _ := bc.GetLIB()
+
 	bm := lblockchain.NewBlockchainManager(bc, blockchain.NewBlockPool(LIBBlk), node, conss)
 
 	if err != nil {

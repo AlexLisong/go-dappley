@@ -19,6 +19,7 @@
 package blockchain
 
 import (
+	"strconv"
 	"sync"
 
 	"github.com/dappley/go-dappley/common/hash"
@@ -62,16 +63,23 @@ func NewBlockPool(rootBlk *block.Block) *BlockPool {
 
 //AddBlock adds the block to the forks and return the parent hash of the fork that contains the input block
 func (pool *BlockPool) AddBlock(blk *block.Block) {
+	logger.WithField("db height",blk.GetHeight()).
+		WithField("producer",blk.GetProducer()).
+		WithField("hash",blk.GetHash()).
+		Info("block header")
 
 	if blk == nil {
+		logger.Errorf("blk is nil")
 		return
 	}
 
 	if pool.blkCache.Contains(blk.GetHash().String()) {
+		logger.Info("blk contains");
 		return
 	}
 
 	if !pool.isBlockValid(blk) {
+		logger.Info("blk is invalid");
 		return
 	}
 
@@ -89,7 +97,26 @@ func (pool *BlockPool) GetForkHead(blk *block.Block) *block.Block {
 		return nil
 	}
 
+	rst := ""
+	PrintTree(node.(*common.TreeNode).GetRoot(),"",true,&rst)
+	logger.Infof("tree: \n%s",rst)
 	return node.(*common.TreeNode).GetRoot().GetValue().(*block.Block)
+}
+
+func PrintTree(node *common.TreeNode, prefix string, last bool, rst *string){
+	blk := node.GetValue().(*block.Block);
+	name := blk.GetHash().String()[0:6] + "(" +strconv.Itoa(int(blk.GetHeight())) + ")"
+	*rst += prefix + "+-  " + name + "\n"
+	if last{
+		prefix += "    "
+	}else{
+		prefix += "|   "
+	}
+
+	for k,v := range node.Children {
+		PrintTree(v ,prefix,k == len(node.Children) -1,rst)
+		return
+	}
 }
 
 //SetRootBlock updates the last irreversible block

@@ -382,6 +382,11 @@ func (bc *Blockchain) AddBlockToDb(blk *block.Block) error {
 	}
 
 	err = bc.db.Put(util.UintToHex(blk.GetHeight()), blk.GetHash())
+	logger.WithField("db height",blk.GetHeight()).
+		WithField("producer",blk.GetProducer()).
+		WithField("hash",blk.GetHash()).
+		Info("block header")
+
 	if err != nil {
 		logger.WithError(err).Warn("Blockchain: failed to index the blk by blk height in database!")
 		return err
@@ -541,7 +546,7 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 			logger.WithFields(logger.Fields{
 				"currBlkHeight": currBlk.GetHeight(),
 				"producer":      currBlk.GetProducer(),
-			}).Debug("Blockchain: repeating producer")
+			}).Info("Blockchain: repeating producer")
 			return true
 		}
 
@@ -580,6 +585,10 @@ func (bc *Blockchain) updateLIB(currBlkHeight uint64) {
 	}
 
 	bc.SetLIBHash(LIBBlk.GetHash())
+	logger.WithField("height",LIBBlk.GetHeight()).
+		WithField("hash",LIBBlk.GetHash()).
+		WithField("producer",LIBBlk.GetProducer()).
+		Info("LIBBLK INFO")
 }
 
 // Set value of switch tag on RunScheduleEvents
