@@ -88,6 +88,7 @@ extern "C" {
     typedef char* (*FuncStorageGet)(void *address, const char *key);
     typedef int (*FuncStorageSet)(void *address, const char *key, const char *value);
     typedef int (*FuncStorageDel)(void *address, const char *key);
+    typedef bool (*FuncProducer)(void *address, const char *option , const char *nodeAddr);
     typedef int (*FuncContractDel)(void *address);
     typedef int (*FuncTriggerEvent)(void *address, const char *topic, const char *data);
     typedef void (*FuncTransactionGet)(void* address, void* context);
@@ -109,6 +110,7 @@ EXPORT int executeV8Script(const char *sourceCode, int source_line_offset, uintp
 EXPORT void InitializeBlockchain(FuncVerifyAddress verifyAddress, FuncTransfer transfer, FuncGetCurrBlockHeight getCurrBlockHeight,
                                  FuncGetNodeAddress getNodeAddress, FuncDeleteContract deleteContract);
 EXPORT void InitializeRewardDistributor(FuncRecordReward recordReward);
+EXPORT void InitializeProducer(FuncProducer producer);
 EXPORT void InitializeStorage(FuncStorageGet get, FuncStorageSet set, FuncStorageDel del);
 EXPORT void InitializeEvent(FuncTriggerEvent triggerEvent);
 EXPORT void InitializeContract(FuncContractDel del);

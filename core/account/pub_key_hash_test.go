@@ -1,6 +1,9 @@
 package account
 
 import (
+	"encoding/hex"
+	"fmt"
+	"github.com/dappley/go-dappley/crypto/keystore/secp256k1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +15,22 @@ func TestNewUserPubKeyHash(t *testing.T) {
 	publicKey := []uint8([]byte{0xd7, 0x23, 0x82, 0x25, 0xaa, 0x81, 0x1f, 0x4d, 0xf6, 0xae, 0x31, 0x35, 0x60, 0xfc, 0x81, 0x7, 0x8, 0x8b, 0x3b, 0x87, 0x25, 0xae, 0xf3, 0xec, 0x62, 0xde, 0xa8, 0x88, 0xbc, 0x1e, 0x93, 0xa4, 0xc9, 0xac, 0xfa, 0x27, 0x83, 0xf4, 0x69, 0x61, 0x57, 0xb5, 0x82, 0xe6, 0x62, 0xd0, 0x18, 0x5c, 0xdd, 0x28, 0xbf, 0xe4, 0x5c, 0xb5, 0xd7, 0xe3, 0xb5, 0x43, 0xd, 0x20, 0xac, 0x73, 0x58, 0x15})
 	content := newUserPubKeyHash(publicKey)
 	assert.Equal(t, expect, []byte(content))
+}
+
+func TestGenerateKeyPair(t *testing.T) {
+	priKey,pubKey := newKeyPair()
+	rawBytes, err := secp256k1.FromECDSAPrivateKey(&priKey)
+	if err != nil{
+		t.Fatalf("convert to bytes failed, err: %v", err.Error())
+	}
+	fmt.Println("---------------private key-------------------")
+	fmt.Println(hex.EncodeToString(rawBytes))
+
+	pubKeyHash := append([]byte{versionUser}, generatePubKeyHash(pubKey)...)
+	pubHash := PubKeyHash(pubKeyHash)
+
+	fmt.Println("---------------address-----------------------")
+	fmt.Println(pubHash.GenerateAddress())
 }
 
 func TestNewContractPubKeyHash(t *testing.T) {

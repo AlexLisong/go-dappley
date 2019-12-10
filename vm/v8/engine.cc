@@ -23,8 +23,10 @@
 #include "lib/prev_utxo.h"
 #include "lib/reward_distributor.h"
 #include "lib/storage.h"
+#include "lib/producer.h"
 #include "lib/transaction.h"
 #include "lib/vm_error.h"
+
 
 using namespace v8;
 std::unique_ptr<Platform> platformPtr;

@@ -121,6 +121,14 @@ func (ss *ScState) GetStorageByAddress(address string) map[string]string {
 	return ss.states[address]
 }
 
+//GetStorageByAddress gets a storage map by address
+func (ss *ScState) DeleteAddress(address string)  {
+	if len(ss.states[address]) != 0 {
+		//initializes the map with dummy data
+		delete(ss.states, address)
+	}
+}
+
 func GetScStateKey(blkHash hash.Hash) []byte {
 	return []byte(scStateMapKey)
 }

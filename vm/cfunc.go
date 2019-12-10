@@ -16,6 +16,8 @@ int   DeleteContractFunc(void *handler);
 char* StorageGetFunc(void *address, const char *key);
 int   StorageSetFunc(void *address,const char *key, const char *value);
 int   StorageDelFunc(void *address,const char *key);
+bool  ProducerFunc(void *address,const char * option , const char *nodeAddr );
+
 int   TriggerEventFunc(void *address, const char *topic, const char *data);
 void  TransactionGetFunc(void *address, void *context);
 void  LoggerFunc(unsigned int level, char ** args, int length);
@@ -66,6 +68,10 @@ int Cgo_StorageSetFunc(void *address, const char *key, const char *value){
 
 int Cgo_StorageDelFunc(void *address, const char *key){
 	return StorageDelFunc(address,key);
+};
+
+bool Cgo_ProducerFunc(void *address,const char * option , const char *nodeAddr ){
+	return ProducerFunc(address,option,nodeAddr);
 };
 
 int Cgo_TriggerEventFunc(void *address, const char *topic, const char *data){

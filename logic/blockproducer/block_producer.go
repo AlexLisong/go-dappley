@@ -45,12 +45,17 @@ func (bp *BlockProducer) Start() {
 		for {
 			select {
 			case <-bp.stopCh:
+				logger.Info("BlockProducer Stop...")
 				return
 			default:
 				bp.con.ProduceBlock(bp.produceBlock)
 			}
 		}
 	}()
+}
+
+func (bp *BlockProducer) GetProducerInfo() *blockproducerinfo.BlockProducerInfo {
+	return bp.producer
 }
 
 //Stop stops the block producing process

@@ -1,13 +1,14 @@
 log:
-  name:  "log/dappley.log"
-  level:  "info"
-  count:  7
-  rotateTime:  86400
-  stdout:  false
+  count: 7
+  level: info
+  name: log/dappley.log
+  rotatetime: 86400
+  stdout: true
 metrics:
+  interval: 5001
   open: false
-  interval: 5000
 pprof:
   open: false
-scheduleEvents:
+producerchange: false
+scheduleevents:
   enable: false

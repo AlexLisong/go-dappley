@@ -21,9 +21,9 @@ package consensus
 import (
 	"errors"
 	"fmt"
-
 	"github.com/dappley/go-dappley/core/account"
 	logger "github.com/sirupsen/logrus"
+	"sync"
 )
 
 type Dynasty struct {
@@ -31,6 +31,7 @@ type Dynasty struct {
 	maxProducers   int
 	timeBetweenBlk int
 	dynastyTime    int
+	rwLock *sync.RWMutex
 }
 
 const (
@@ -45,6 +46,7 @@ func NewDynasty(producers []string, maxProducers, timeBetweenBlk int) *Dynasty {
 		maxProducers:   maxProducers,
 		timeBetweenBlk: timeBetweenBlk,
 		dynastyTime:    timeBetweenBlk * maxProducers,
+		rwLock: new(sync.RWMutex),
 	}
 }
 
@@ -67,6 +69,7 @@ func NewDynastyWithConfigProducers(producers []string, maxProducers int) *Dynast
 		maxProducers:   maxProducers,
 		timeBetweenBlk: defaultTimeBetweenBlk,
 		dynastyTime:    maxProducers * defaultTimeBetweenBlk,
+		rwLock: new(sync.RWMutex),
 	}
 	d.trimProducers()
 	return d
@@ -91,6 +94,7 @@ func (dynasty *Dynasty) SetMaxProducers(maxProducers int) {
 		dynasty.maxProducers = maxProducers
 		dynasty.dynastyTime = maxProducers * dynasty.timeBetweenBlk
 	}
+
 	if maxProducers < len(dynasty.producers) {
 		dynasty.producers = dynasty.producers[:maxProducers]
 	}
@@ -106,14 +110,41 @@ func (dynasty *Dynasty) SetTimeBetweenBlk(timeBetweenBlk int) {
 
 //AddProducer adds a producer to the dynasty
 func (dynasty *Dynasty) AddProducer(producer string) error {
+	dynasty.rwLock.Lock()
+	defer dynasty.rwLock.Unlock()
 	if err := dynasty.isAddingProducerAllowed(producer); err != nil {
 		return err
 	}
+
 	dynasty.producers = append(dynasty.producers, producer)
 	logger.WithFields(logger.Fields{
 		"producer": producer,
 		"list":     dynasty.producers,
-	}).Debug("Dynasty: added a producer to list.")
+	}).Infof("Dynasty: added a producer to list.")
+
+	return nil
+}
+
+func (dynasty *Dynasty) DeleteProducer(producer string) error{
+	var producerTemp []string
+	bDel := false
+
+	dynasty.rwLock.Lock()
+
+	for _, producerNow := range dynasty.producers {
+		if producerNow != producer {
+			producerTemp = append(producerTemp, producerNow)
+		}else{
+			bDel = true
+			logger.Infof("Delete producer: %v", producerNow)
+		}
+	}
+	dynasty.producers = producerTemp
+
+	dynasty.rwLock.Unlock()
+	if !bDel{
+		return errors.New("cannot find producer to delete")
+	}
 	return nil
 }
 
@@ -150,7 +181,9 @@ func (dynasty *Dynasty) AddMultipleProducers(producers []string) {
 
 //IsMyTurn returns if it is the input producer's turn to produce block
 func (dynasty *Dynasty) IsMyTurn(producer string, now int64) bool {
+	dynasty.rwLock.RLock()
 	index := dynasty.GetProducerIndex(producer)
+	dynasty.rwLock.RUnlock()
 	return dynasty.isMyTurnByIndex(index, now)
 }
 
@@ -170,16 +203,22 @@ func (dynasty *Dynasty) ProducerAtATime(time int64) string {
 	}
 	dynastyTimeElapsed := int(time % int64(dynasty.dynastyTime))
 	index := dynastyTimeElapsed / dynasty.timeBetweenBlk
+	dynasty.rwLock.RLock()
+	defer dynasty.rwLock.RUnlock()
 	return dynasty.producers[index]
 }
 
 //find the index of the producer. If not found, return -1
 func (dynasty *Dynasty) GetProducerIndex(producer string) int {
+	dynasty.rwLock.RLock()
+	defer dynasty.rwLock.RUnlock()
 	for i, m := range dynasty.producers {
 		if producer == m {
 			return i
 		}
 	}
+
+
 	return -1
 }
 
@@ -201,6 +240,8 @@ func (dynasty *Dynasty) IsSettingProducersAllowed(producers []string, maxProduce
 	}
 
 	seen := make(map[string]bool)
+	dynasty.rwLock.RLock()
+	defer dynasty.rwLock.RUnlock()
 	for _, producer := range producers {
 		producerAccount := account.NewContractAccountByAddress(account.NewAddress(producer))
 		if seen[producer] {

@@ -20,7 +20,7 @@ package account
 
 import (
 	"crypto/ecdsa"
-
+	"encoding/hex"
 	accountpb "github.com/dappley/go-dappley/core/account/pb"
 	"github.com/dappley/go-dappley/crypto/keystore/secp256k1"
 	"github.com/golang/protobuf/proto"
@@ -42,6 +42,25 @@ func (kp KeyPair) GenerateAddress() Address {
 	return pubKeyHash.GenerateAddress()
 }
 
+func GenerateNodeAddress()(publicHash string, privateKey string){
+	defer func() {
+		if err := recover(); err != nil{
+			logger.Errorf("recover, err: %v", err)
+		}
+	}()
+
+	priKey,pubKey := newKeyPair()
+	rawBytes, err := secp256k1.FromECDSAPrivateKey(&priKey)
+	if err != nil{
+		logger.Errorf("convert to bytes failed, err: %v", err.Error())
+	}
+
+	pubKeyHash := append([]byte{versionUser}, generatePubKeyHash(pubKey)...)
+	pubHash := PubKeyHash(pubKeyHash)
+
+	return pubHash.GenerateAddress().address,hex.EncodeToString(rawBytes)
+}
+
 func newKeyPair() (ecdsa.PrivateKey, []byte) {
 	private, err := secp256k1.NewECDSAPrivateKey()
 	if err != nil {
@@ -49,6 +68,7 @@ func newKeyPair() (ecdsa.PrivateKey, []byte) {
 	}
 
 	pubKey, _ := secp256k1.FromECDSAPublicKey(&private.PublicKey)
+
 	//remove the uncompressed point at pubKey[0]
 	return *private, pubKey[1:]
 }

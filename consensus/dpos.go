@@ -64,6 +64,9 @@ func NewDPOS(producer *blockproducerinfo.BlockProducerInfo) *DPOS {
 	dpos.slot = slot
 	return dpos
 }
+func (dpos *DPOS) SetProducer(producer *blockproducerinfo.BlockProducerInfo){
+	dpos.producer = producer
+}
 
 //SetKey sets the producer key
 func (dpos *DPOS) SetKey(key string) {
@@ -85,6 +88,8 @@ func (dpos *DPOS) AddProducer(producer string) error {
 	err := dpos.dynasty.AddProducer(producer)
 	return err
 }
+
+
 
 //GetProducers returns all current producers
 func (dpos *DPOS) GetProducers() []string {
@@ -188,7 +193,7 @@ func (dpos *DPOS) verifyProducer(block *block.Block) bool {
 	ta := account.NewTransactionAccountByPubKey(pubkey[1:])
 
 	if strings.Compare(ta.GetAddress().String(), producer) != 0 {
-		logger.Warn("DPoS: the signer is not the producer in this time slot.")
+		logger.Warnf("DPoS: the signer is not the producer in this time slot. %v", ta.GetAddress().String())
 		return false
 	}
 

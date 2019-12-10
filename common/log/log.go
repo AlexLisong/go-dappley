@@ -40,7 +40,7 @@ func (logNew *Log) GetParameters() {
 	}
 	logNew.count = logCount
 
-	rotateTime := viper.GetInt("log.rotateTime")
+	rotateTime := viper.GetInt("log.rotatetime")
 	if rotateTime == 0 {
 		rotateTime = 86400
 	}

@@ -20,32 +20,31 @@ package main
 
 import (
 	"flag"
-	"github.com/dappley/go-dappley/core/block"
-	"github.com/dappley/go-dappley/logic/blockproducer"
-
-	"github.com/dappley/go-dappley/core/blockchain"
-	"github.com/dappley/go-dappley/core/blockproducerinfo"
-	"github.com/dappley/go-dappley/logic/lblockchain"
-	"github.com/dappley/go-dappley/logic/transactionpool"
-
 	"github.com/dappley/go-dappley/common/log"
-	"github.com/dappley/go-dappley/logic/downloadmanager"
-	logger "github.com/sirupsen/logrus"
-
 	"github.com/dappley/go-dappley/config"
 	"github.com/dappley/go-dappley/config/pb"
 	"github.com/dappley/go-dappley/consensus"
 	"github.com/dappley/go-dappley/core/account"
+	"github.com/dappley/go-dappley/core/block"
+	"github.com/dappley/go-dappley/core/blockchain"
+	"github.com/dappley/go-dappley/core/blockproducerinfo"
+	"github.com/dappley/go-dappley/core/scState"
 	"github.com/dappley/go-dappley/logic"
-
+	"github.com/dappley/go-dappley/logic/blockproducer"
+	"github.com/dappley/go-dappley/logic/downloadmanager"
+	"github.com/dappley/go-dappley/logic/lblockchain"
+	"github.com/dappley/go-dappley/logic/transactionpool"
 	"github.com/dappley/go-dappley/metrics/logMetrics"
 	"github.com/dappley/go-dappley/network"
 	"github.com/dappley/go-dappley/rpc"
 	"github.com/dappley/go-dappley/storage"
 	"github.com/dappley/go-dappley/vm"
+	"github.com/fsnotify/fsnotify"
+	logger "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"net/http"
 	_ "net/http/pprof"
+	"time"
 )
 
 const (
@@ -152,8 +151,7 @@ func main() {
 
 	bm.RequestDownloadBlockchain()
 
-	// switch on RunScheduleEvents
-	if viper.GetBool("scheduleEvents.enable") {
+	if viper.GetBool("scheduleevents.enable") {
 		lblockchain.SetEnableRunScheduleEvents()
 	}
 	if viper.GetBool("metrics.open") {
@@ -164,8 +162,43 @@ func main() {
 			http.ListenAndServe(":60001", nil)
 		}()
 	}
+
+	viper.WatchConfig()
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		if viper.GetBool("producerchange") {
+			logger.Infof("producer change true")
+			viper.SetConfigType("yaml")
+			viper.Set("producerchange",false)
+			err := viper.WriteConfig()
+			if err != nil{
+				logger.Errorf("WriteConfig err: %v", err.Error())
+			}
+			conf := &configpb.Config{}
+			config.LoadConfig(filePath, conf)
+			if conf == nil {
+				logger.Error("Cannot load configurations from file! Exiting...")
+				return
+			}
+
+			genesisConf := &configpb.DynastyConfig{}
+			config.LoadConfig(genesisPath, genesisConf)
+
+			blockProducer.Stop()
+
+			logic.SetMinerKeyPair(conf.GetConsensusConfig().GetPrivateKey())
+
+			producer := blockproducerinfo.NewBlockProducerInfo(conf.GetConsensusConfig().GetMinerAddress())
+			setConsensus(conss,genesisConf,conf,producer)
+			blockProducer = blockproducer.NewBlockProducer(bm, conss, producer)
+			blockProducer.Start()
+		}
+	})
+
+	ProducerForBlock(bc,conss)
+
 	select {}
 }
+
 
 func initConsensus(conf *configpb.DynastyConfig, generalConf *configpb.Config) (*consensus.DPOS, *consensus.Dynasty) {
 	//set up consensus
@@ -177,6 +210,17 @@ func initConsensus(conf *configpb.DynastyConfig, generalConf *configpb.Config) (
 		"miner_address": generalConf.GetConsensusConfig().GetMinerAddress(),
 	}).Info("Consensus is configured.")
 	return conss, dynasty
+}
+
+func setConsensus(conss *consensus.DPOS,conf *configpb.DynastyConfig, generalConf *configpb.Config,producer *blockproducerinfo.BlockProducerInfo){
+	dynasty := consensus.NewDynastyWithConfigProducers(conf.GetProducers(), (int)(conf.GetMaxProducers()))
+	conss.SetDynasty(dynasty)
+	conss.SetKey(generalConf.GetConsensusConfig().GetPrivateKey())
+	conss.SetProducer(producer)
+
+	logger.WithFields(logger.Fields{
+		"miner_address": generalConf.GetConsensusConfig().GetMinerAddress(),
+	}).Info("Consensus is set.")
 }
 
 func initNode(conf *configpb.Config, db storage.Storage) (*network.Node, error) {
@@ -193,4 +237,43 @@ func initNode(conf *configpb.Config, db storage.Storage) (*network.Node, error) 
 		return nil, err
 	}
 	return node, nil
+}
+
+func ProducerForBlock(bc *lblockchain.Blockchain, conss *consensus.DPOS){
+	go func() {
+		tick := time.NewTicker(time.Second*time.Duration(60))
+		defer tick.Stop()
+
+		for{
+			select {
+			case <-tick.C:
+				sc := scState.LoadScStateFromDatabase(bc.GetDb())
+				producerMap := sc.GetStorageByAddress(vm.PRODUCER_ADDR)
+				logger.Infof("producer map: %v", producerMap)
+				if producerMap == nil || len(producerMap) == 1{
+					logger.Infof("producer map is empty")
+					continue
+				}
+
+				addProducer := producerMap[vm.PRODUCER_ADD_INDEX]
+				if addProducer != ""{
+					err := conss.GetDynasty().AddProducer(addProducer)
+					if err != nil{
+						logger.Infof("add producer err: %v", err.Error())
+					}
+				}
+
+				delproducer := producerMap[vm.PRODUCER_DEL_INDEX]
+				if delproducer != ""{
+					err := conss.GetDynasty().DeleteProducer(delproducer)
+					if err != nil{
+						logger.Infof("delete producer err: %v", err.Error())
+					}
+				}
+
+				sc.DeleteAddress(vm.PRODUCER_ADDR)
+				sc.SaveToDatabase(bc.GetDb())
+			}
+		}
+	}()
 }

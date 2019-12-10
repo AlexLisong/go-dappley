@@ -10,6 +10,7 @@
 #include "reward_distributor.h"
 #include "storage.h"
 #include "transaction.h"
+#include "producer.h"
 
 Local<ObjectTemplate> CreateGlobalObjectTemplate(Isolate *isolate) {
     Local<ObjectTemplate> globalTpl = ObjectTemplate::New(isolate);
@@ -34,6 +35,7 @@ void SetGlobalObjectProperties(Isolate *isolate, Local<Context> context, V8Engin
     NewPrevUtxoInstance(isolate, context, (void *)handler);
     NewMathInstance(isolate, context, (void *)handler);
     NewEventInstance(isolate, context, (void *)handler);
+    NewProducerInstance(isolate, context, (void *)handler);
 
     NewInstructionCounterInstance(isolate, context, &(e->stats.count_of_executed_instructions), e);
 }
