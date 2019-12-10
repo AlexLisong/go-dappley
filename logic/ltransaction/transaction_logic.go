@@ -232,12 +232,18 @@ func Execute(ctx *transaction.ContractTx, prevUtxos []*utxo.UTXO,
 		"arguments":        totalArgs,
 	}).Debug("Transaction: is executing the smart contract...")
 
-	createContractUtxo, invokeUtxos := index.SplitContractUtxo([]byte(vout.PubKeyHash))
+	var createContractUtxo *utxo.UTXO
+	contractUtxos := index.GetContractUtxos()
+	for _, u := range contractUtxos {
+		if u.PubKeyHash.String() == vout.PubKeyHash.String() {
+			createContractUtxo = u
+			break
+		}
+	}
 
 	engine.ImportSourceCode(createContractUtxo.Contract)
 	engine.ImportLocalStorage(scStorage)
 	engine.ImportContractAddr(address)
-	engine.ImportUTXOs(invokeUtxos)
 	engine.ImportSourceTXID(ctx.ID)
 	engine.ImportRewardStorage(rewards)
 	engine.ImportTransaction(&ctx.Transaction)
