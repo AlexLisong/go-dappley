@@ -22,6 +22,7 @@ import (
 	"github.com/dappley/go-dappley/common"
 	utxopb "github.com/dappley/go-dappley/core/utxo/pb"
 	"github.com/golang/protobuf/proto"
+	"github.com/jinzhu/copier"
 	"github.com/raviqqe/hamt"
 	logger "github.com/sirupsen/logrus"
 	"hash/fnv"
@@ -158,9 +159,7 @@ func (utxoTx UTXOTx) PrepareUtxos(amount *common.Amount) ([]*UTXO, bool) {
 }
 
 func (utxoTx UTXOTx) DeepCopy() *UTXOTx {
-	newUtxoTx := NewUTXOTxWithSize(utxoTx.Size())
-	for key, utxo := range utxoTx.Indices {
-		newUtxoTx.Indices[key] = utxo
-	}
-	return newUtxoTx
+	newCopy := &UTXOTx{}
+	copier.Copy(newCopy, &utxoTx)
+	return newCopy
 }
