@@ -121,6 +121,8 @@ func (bp *BlockProducer) prepareBlock(deadline deadline.Deadline) *lblockchain.B
 //collectTransactions pack transactions from transaction pool to a new block
 func (bp *BlockProducer) collectTransactions(utxoIndex *lutxo.UTXOIndex, parentBlk *block.Block, deadline deadline.Deadline) ([]*transaction.Transaction, *scState.ScState) {
 
+	logger.Info("block producer collectTransactions start")
+
 	var validTxs []*transaction.Transaction
 	totalSize := 0
 	count := 0
@@ -187,6 +189,7 @@ func (bp *BlockProducer) collectTransactions(utxoIndex *lutxo.UTXOIndex, parentB
 		validTxs = append(validTxs, &rtx)
 		utxoIndex.UpdateUtxo(&rtx)
 	}
+	logger.Info("block producer collectTransactions end")
 
 	return validTxs, scStorage
 }
