@@ -161,5 +161,6 @@ func (utxoTx UTXOTx) PrepareUtxos(amount *common.Amount) ([]*UTXO, bool) {
 func (utxoTx UTXOTx) DeepCopy() *UTXOTx {
 	newCopy := &UTXOTx{}
 	copier.Copy(newCopy, &utxoTx)
+
 	return newCopy
 }
