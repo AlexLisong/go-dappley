@@ -62,7 +62,9 @@ func main() {
 		logger.Errorf("Cannot load dappley configurations from file!  error： %v", err.Error())
 		return
 	}
-
+go func() {
+	http.ListenAndServe("localhost:6060", nil)
+}()
 	log.BuildLogAndInit()
 	var filePath string
 	flag.StringVar(&filePath, "f", configFilePath, "Configuration File Path. Default to conf/default.conf")

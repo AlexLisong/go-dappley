@@ -237,7 +237,7 @@ func (bc *Blockchain) AddBlockContextToTail(ctx *BlockContext) error {
 
 	bcTemp := bc.DeepCopy()
 	tailBlk, _ := bc.GetTailBlock()
-
+	logger.Info("bc deepcopy done")
 	bcTemp.db.DisableBatch()
 
 	numTxBeforeExe := bc.GetTxPool().GetNumOfTxInPool()
@@ -245,18 +245,17 @@ func (bc *Blockchain) AddBlockContextToTail(ctx *BlockContext) error {
 	if isEnableRunScheduleEvents {
 		bcTemp.runScheduleEvents(ctx, tailBlk)
 	}
-
+	
 	err := ctx.UtxoIndex.Save()
 	if err != nil {
 		blockLogger.Warn("Blockchain: failed to save utxo to database.")
 		return err
 	}
-
+	logger.Info("UTXOINDEX save done")
 	//Remove transactions in current transaction pool
 	bcTemp.GetTxPool().CleanUpMinedTxs(ctx.Block.GetTransactions())
 	bcTemp.GetTxPool().ResetPendingTransactions()
 	err = bcTemp.GetTxPool().SaveToDatabase(bc.db)
-
 	if err != nil {
 		blockLogger.Warn("Blockchain: failed to save txpool to database.")
 		return err

@@ -155,6 +155,7 @@ func (bm *BlockchainManager) Push(blk *block.Block, pid networkmodel.PeerInfo) {
 	if !bm.VerifyBlock(blk) {
 		return
 	}
+	logger.Info("BlockChainManager:1***")
 
 	receiveBlockHeight := blk.GetHeight()
 	ownBlockHeight := bm.Getblockchain().GetMaxHeight()
@@ -164,12 +165,15 @@ func (bm *BlockchainManager) Push(blk *block.Block, pid networkmodel.PeerInfo) {
 		bm.RequestDownloadBlockchain()
 		return
 	}
-
+	logger.Info("BlockChainManager:2***")
 	bm.blockPool.AddBlock(blk)
+	logger.Info("BlockChainManager:3***")
+
 	forkHeadBlk := bm.blockPool.GetForkHead(blk)
 	if forkHeadBlk == nil {
 		return
 	}
+	logger.Info("BlockChainManager:4***")
 
 	if !bm.blockchain.IsInBlockchain(forkHeadBlk.GetPrevHash()) {
 		logger.WithFields(logger.Fields{
@@ -184,16 +188,22 @@ func (bm *BlockchainManager) Push(blk *block.Block, pid networkmodel.PeerInfo) {
 	if fork == nil {
 		return
 	}
+	logger.Info("BlockChainManager:5***")
 
 	if fork[0].GetHeight() <= bm.Getblockchain().GetMaxHeight() {
 		return
 	}
+	logger.Info("BlockChainManager:6***")
 
 	bm.blockchain.SetState(blockchain.BlockchainSync)
 	_ = bm.MergeFork(fork, forkHeadBlk.GetPrevHash())
+	logger.Info("BlockChainManager:7***")
+
 	bm.blockPool.RemoveFork(fork)
+	logger.Info("BlockChainManager:8***")
 	bm.blockchain.SetState(blockchain.BlockchainReady)
 	return
+
 }
 
 func (bm *BlockchainManager) MergeFork(forkBlks []*block.Block, forkParentHash hash.Hash) error {
@@ -214,7 +224,9 @@ func (bm *BlockchainManager) MergeFork(forkBlks []*block.Block, forkParentHash h
 		return err
 	}
 	rollBackUtxo := utxo.DeepCopy()
+	logger.Info("MergeFork: Utxo deepcopy finished")
 	rollScState := scState.DeepCopy()
+	logger.Info("MergeFork: scState deepcopy finished")
 
 	parentBlk, err := bm.blockchain.GetBlockByHash(forkParentHash)
 	if err != nil {
@@ -230,22 +242,24 @@ func (bm *BlockchainManager) MergeFork(forkBlks []*block.Block, forkParentHash h
 		logger.WithFields(logger.Fields{
 			"height": forkBlks[i].GetHeight(),
 			"hash":   forkBlks[i].GetHash().String(),
-		}).Debug("BlockchainManager: is verifying a block in the fork.")
+		}).Info("BlockchainManager: is verifying a block in the fork.")
 
 		if !lblock.VerifyTransactions(forkBlks[i], utxo, scState, parentBlk) {
 			return ErrTransactionVerifyFailed
 		}
 
+		logger.Info("VerifyTransaction done")
 		if !bm.Getblockchain().CheckLibPolicy(forkBlks[i]) {
 			return ErrProducerNotEnough
 		}
-
+		logger.Info("CheckLIBPolicy done")
 		if firstCheck {
 			firstCheck = false
 			bm.blockchain.Rollback(forkParentHash, rollBackUtxo, rollScState)
+			logger.Info("Rollback done")
 		}
-
 		ctx := BlockContext{Block: forkBlks[i], UtxoIndex: utxo, State: scState}
+		logger.Info("About to add block to tail")
 		err = bm.blockchain.AddBlockContextToTail(&ctx)
 		if err != nil {
 			logger.WithFields(logger.Fields{
