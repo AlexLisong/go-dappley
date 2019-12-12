@@ -20,13 +20,12 @@ package utxo
 
 import (
 	"github.com/dappley/go-dappley/common"
-	utxopb "github.com/dappley/go-dappley/core/utxo/pb"
+	"github.com/dappley/go-dappley/core/utxo/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/raviqqe/hamt"
 	logger "github.com/sirupsen/logrus"
 	"hash/fnv"
 	"strconv"
-	"sync"
 )
 
 // UTXOTx holds txid_vout and UTXO pairs
@@ -34,7 +33,6 @@ import (
 
 type UTXOTx struct {
 	Indices map[string]*UTXO
-	mutex   *sync.Mutex
 }
 
 type StringEntry string
@@ -55,7 +53,7 @@ func (key *StringEntry) Equal(other hamt.Entry) bool {
 }
 
 func NewUTXOTx() UTXOTx {
-	return UTXOTx{Indices: map[string]*UTXO{}, mutex: &sync.Mutex{}}
+	return UTXOTx{Indices: map[string]*UTXO{}}
 }
 
 // Construct with UTXO data
@@ -89,9 +87,6 @@ func DeserializeUTXOTx(d []byte) UTXOTx {
 }
 
 func (utxoTx UTXOTx) Serialize() []byte {
-	utxoTx.mutex.Lock()
-	defer utxoTx.mutex.Unlock()
-
 	utxoList := &utxopb.UtxoList{}
 
 	for _, utxo := range utxoTx.Indices {

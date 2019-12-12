@@ -23,6 +23,7 @@ import (
 	"github.com/dappley/go-dappley/storage"
 	"github.com/hashicorp/golang-lru"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 const UtxoCacheLRUCacheLimit = 1024
@@ -72,9 +73,13 @@ func (utxoCache *UTXOCache) Put(pubKeyHash account.PubKeyHash, value *UTXOTx) er
 	utxoCache.cache.Add(string(pubKeyHash), savedUtxoTx)
 	var err error
 	go func() {
+		t := time.Now()
 		b := value.Serialize()
 		err = utxoCache.db.Put(pubKeyHash, b)
-		logrus.Info("UtxoCache Save. Size:", len(b))
+		logrus.WithFields(logrus.Fields{
+			"size": len(b),
+			"time": time.Now().Sub(t).String(),
+		}).Info("UtxoCache Save. Size:")
 		if err == nil && ok {
 			Free(mapData.(*UTXOTx))
 		}
