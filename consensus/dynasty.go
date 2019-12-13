@@ -204,6 +204,9 @@ func (dynasty *Dynasty) ProducerAtATime(time int64) string {
 	dynastyTimeElapsed := int(time % int64(dynasty.dynastyTime))
 	index := dynastyTimeElapsed / dynasty.timeBetweenBlk
 	dynasty.rwLock.RLock()
+	if index + 1 > len(dynasty.producers){
+		return ""
+	}
 	defer dynasty.rwLock.RUnlock()
 	return dynasty.producers[index]
 }
