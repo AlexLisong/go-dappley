@@ -7,6 +7,7 @@ RUN install ../lib/x86_64/*.so /usr/local/lib
 RUN install ../lib/*.so /usr/local/lib
 RUN ldconfig
 WORKDIR /opt/go-dappley
+COPY dapp/cli dapp/cli
 COPY dapp/dapp dapp/dapp
 COPY dapp/jslib dapp/jslib
 COPY core/account/account.conf core/account/account.conf
