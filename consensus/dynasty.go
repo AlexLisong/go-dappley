@@ -126,10 +126,11 @@ func (dynasty *Dynasty) AddProducer(producer string) error {
 }
 
 func (dynasty *Dynasty) DeleteProducer(producer string) error{
+	dynasty.rwLock.Lock()
+	defer dynasty.rwLock.Unlock()
+
 	var producerTemp []string
 	bDel := false
-
-	dynasty.rwLock.Lock()
 
 	for _, producerNow := range dynasty.producers {
 		if producerNow != producer {
@@ -139,9 +140,9 @@ func (dynasty *Dynasty) DeleteProducer(producer string) error{
 			logger.Infof("Delete producer: %v", producerNow)
 		}
 	}
-	dynasty.producers = producerTemp
 
-	dynasty.rwLock.Unlock()
+	dynasty.producers = producerTemp
+	logger.Infof("Delete producer: %v", producerTemp)
 	if !bDel{
 		return errors.New("cannot find producer to delete")
 	}
@@ -204,10 +205,10 @@ func (dynasty *Dynasty) ProducerAtATime(time int64) string {
 	dynastyTimeElapsed := int(time % int64(dynasty.dynastyTime))
 	index := dynastyTimeElapsed / dynasty.timeBetweenBlk
 	dynasty.rwLock.RLock()
+	defer dynasty.rwLock.RUnlock()
 	if index + 1 > len(dynasty.producers){
 		return ""
 	}
-	defer dynasty.rwLock.RUnlock()
 	return dynasty.producers[index]
 }
 
