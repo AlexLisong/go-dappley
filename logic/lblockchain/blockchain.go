@@ -569,6 +569,8 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 		return true
 	}
 
+	logger.Infof("existProducers map is %v, libProducerNum is %v, existProducers length is %v", existProducers, libProducerNum, len(existProducers))
+
 	return false
 }
 
