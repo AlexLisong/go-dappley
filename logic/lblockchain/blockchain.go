@@ -532,12 +532,11 @@ func (bc *Blockchain) CheckLibPolicy(blk *block.Block) bool {
 func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 	lib := bc.GetLIBHash()
 
-	libProduerNum := bc.libPolicy.GetMinConfirmationNum()
-
+	maxProducers := bc.libPolicy.GetMaxProducers()
 	existProducers := make(map[string]bool)
 	currBlk := blk
 
-	for i := 0; i < libProduerNum; i++ {
+	for i := 0; i < maxProducers; i++ {
 		if currBlk.GetHeight() == 0 {
 			return false
 		}
@@ -547,7 +546,7 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 				"currBlkHeight": currBlk.GetHeight(),
 				"producer":      currBlk.GetProducer(),
 			}).Info("Blockchain: repeating producer")
-			return true
+			//return true
 		}
 
 		if lib.Equals(currBlk.GetHash()) {
@@ -561,9 +560,15 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 			logger.WithError(err).Warn("Blockchain: Cant not read parent block while checking repeating producer")
 			return true
 		}
-
 		currBlk = newBlock
 	}
+
+	libProducerNum := bc.libPolicy.GetMinConfirmationNum()
+	if len(existProducers) < libProducerNum{
+		logger.Infof("existProducers map is %v", existProducers)
+		return true
+	}
+
 	return false
 }
 

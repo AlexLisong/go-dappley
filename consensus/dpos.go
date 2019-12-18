@@ -101,6 +101,10 @@ func (dpos *DPOS) GetProducerAddress() string {
 	return dpos.producer.Beneficiary()
 }
 
+func (dpos *DPOS) GetMaxProducers() int {
+	return dpos.dynasty.maxProducers
+}
+
 //Stop stops the current produce block process
 func (dpos *DPOS) Stop() {
 	logger.Info("DPoS stops...")
