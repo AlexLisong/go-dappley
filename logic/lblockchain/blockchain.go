@@ -532,11 +532,11 @@ func (bc *Blockchain) CheckLibPolicy(blk *block.Block) bool {
 func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 	lib := bc.GetLIBHash()
 
-	maxProducers := bc.libPolicy.GetMaxProducers()
+	minConfirmationNum := bc.libPolicy.GetMinConfirmationNum()
 	existProducers := make(map[string]bool)
 	currBlk := blk
 
-	for i := 0; i < maxProducers; i++ {
+	for i := 0; i < minConfirmationNum + 1; i++ {
 		if currBlk.GetHeight() == 0 {
 			return false
 		}
@@ -555,6 +555,14 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 				"producer":      currBlk.GetProducer(),
 				"libHash": currBlk.GetHash(),
 			}).Info("Blockchain: hash equal")
+
+			if i == minConfirmationNum {
+				if len(existProducers) < minConfirmationNum{
+					logger.Infof("existProducers map is %v", existProducers)
+					return true
+				}
+			}
+
 			return false
 		}
 
@@ -567,15 +575,6 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 		}
 		currBlk = newBlock
 	}
-
-	libProducerNum := bc.libPolicy.GetMinConfirmationNum()
-	if len(existProducers) < libProducerNum{
-		logger.Infof("existProducers map is %v", existProducers)
-		return true
-	}
-
-	logger.Infof("existProducers map is %v, libProducerNum is %v, existProducers length is %v", existProducers, libProducerNum, len(existProducers))
-
 	return false
 }
 
