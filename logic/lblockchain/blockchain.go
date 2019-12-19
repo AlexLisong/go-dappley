@@ -566,7 +566,7 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 
 			if i == minConfirmationNum {
 				if len(existProducers) < minConfirmationNum{
-					logger.Infof("existProducers map is %v", existProducers)
+					logger.Infof("existProducers map is %v, index: %v", existProducers, minConfirmationNum)
 					return true
 				}
 			}
@@ -582,6 +582,11 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 			return true
 		}
 		currBlk = newBlock
+	}
+
+	if len(existProducers) < minConfirmationNum{
+		logger.Infof("existProducers map is %v", existProducers)
+		return true
 	}
 	return false
 }
