@@ -550,6 +550,11 @@ func (bc *Blockchain) checkRepeatingProducer(blk *block.Block) bool {
 		}
 
 		if lib.Equals(currBlk.GetHash()) {
+			logger.WithFields(logger.Fields{
+				"currBlkHeight": currBlk.GetHeight(),
+				"producer":      currBlk.GetProducer(),
+				"libHash": currBlk.GetHash(),
+			}).Info("Blockchain: hash equal")
 			return false
 		}
 
