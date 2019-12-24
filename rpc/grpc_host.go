@@ -102,6 +102,7 @@ func (s *Server) Start(port uint32) {
 func (s *Server) AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	if info.Server.(Service).IsPrivate() {
 		peer, ok := peer.FromContext(ctx)
+		logger.WithField("ip",peer.Addr).Infof("remote client ip online")
 		if !ok || len(peer.Addr.String()) == 0 {
 			return nil, status.Errorf(codes.Unauthenticated, "unknown ip")
 		}
@@ -109,7 +110,6 @@ func (s *Server) AuthInterceptor(ctx context.Context, req interface{}, info *grp
 		if _, ok := authorizedIPs[ip]; !ok {
 			return nil, status.Errorf(codes.Unauthenticated, "unauthorized access")
 		}
-
 	}
 	return handler(ctx, req)
 }
