@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/peer"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dappley/go-dappley/core/scState"
@@ -49,6 +50,7 @@ import (
 	"github.com/dappley/go-dappley/network"
 	"github.com/dappley/go-dappley/rpc/pb"
 	"github.com/dappley/go-dappley/vm"
+	"github.com/dappley/go-dappley/storage"
 )
 
 const (
@@ -61,6 +63,38 @@ type RpcService struct {
 	bm      *lblockchain.BlockchainManager
 	node    *network.Node
 	dynasty *consensus.Dynasty
+	blacklist map[string]string
+	rwLock *sync.RWMutex
+}
+
+func (rpcSerivce *RpcService) getBlacklist(db storage.Storage) map[string]string{
+	scState := scState.LoadScStateFromDatabase(db)
+	blacklistMap := scState.GetStorageByAddress(vm.BLACKLIST)
+	return blacklistMap
+}
+
+func (rpcSerivce *RpcService) UpdateBlacklist() {
+	tick := time.NewTicker(time.Second*time.Duration(60))
+	defer tick.Stop()
+	for{
+		select {
+		case <-tick.C:
+			rpcSerivce.rwLock.Lock()
+			rpcSerivce.blacklist = nil
+			rpcSerivce.blacklist = rpcSerivce.getBlacklist(rpcSerivce.bm.Getblockchain().GetDb())
+			logger.Infof("update blacklist %v", rpcSerivce.blacklist)
+			rpcSerivce.rwLock.Unlock()
+		default:
+		}
+	}
+}
+
+func (rpcSerivce *RpcService) GetBlacklist() map[string]string{
+	mapBlacklist := make(map[string]string)
+	rpcSerivce.rwLock.RLock()
+	mapBlacklist = rpcSerivce.blacklist
+	rpcSerivce.rwLock.RUnlock()
+	return mapBlacklist
 }
 
 func (rpcSerivce *RpcService) GetBlockchain() *lblockchain.Blockchain {
@@ -235,8 +269,14 @@ func (rpcService *RpcService) RpcSendTransaction(ctx context.Context, in *rpcpb.
 	logger.WithField("ip", peer.Addr.String()).WithField("transaction ID",string(in.Transaction.Id)).Info("receive transaction info")
 
 	tx := &transaction.Transaction{nil, nil, nil, common.NewAmount(0), common.NewAmount(0), common.NewAmount(0), time.Now().UnixNano() / 1e6}
-
 	tx.FromProto(in.GetTransaction())
+
+	blacklistMap := rpcService.GetBlacklist()
+	publicKeyHash := account.GenerateAddress(tx.Vin[0].PubKey)
+
+	if _,ok := blacklistMap[publicKeyHash.String()]; ok{
+		return nil, status.Error(codes.PermissionDenied, "addr in blacklist doesn't permit to transact")
+	}
 
 	if tx.IsCoinbase() {
 		return nil, status.Error(codes.InvalidArgument, "cannot send coinbase transaction")

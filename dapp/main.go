@@ -277,3 +277,4 @@ func ProducerForBlock(bc *lblockchain.Blockchain, conss *consensus.DPOS){
 		}
 	}()
 }
+

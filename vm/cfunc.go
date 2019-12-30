@@ -17,6 +17,7 @@ char* StorageGetFunc(void *address, const char *key);
 int   StorageSetFunc(void *address,const char *key, const char *value);
 int   StorageDelFunc(void *address,const char *key);
 bool  ProducerFunc(void *address,const char * option , const char *nodeAddr );
+bool BlacklistFunc(void *address, const char *option, const char *blackAddr );
 
 int   TriggerEventFunc(void *address, const char *topic, const char *data);
 void  TransactionGetFunc(void *address, void *context);
@@ -72,6 +73,10 @@ int Cgo_StorageDelFunc(void *address, const char *key){
 
 bool Cgo_ProducerFunc(void *address,const char * option , const char *nodeAddr ){
 	return ProducerFunc(address,option,nodeAddr);
+};
+
+bool Cgo_BlacklistFunc(void *address,const char * option , const char *blackAddr ){
+	return BlacklistFunc(address,option,blackAddr);
 };
 
 int Cgo_TriggerEventFunc(void *address, const char *topic, const char *data){

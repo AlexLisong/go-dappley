@@ -33,6 +33,7 @@ func newContractPubKeyHash() PubKeyHash {
 	pubKeyHash = append([]byte{versionContract}, pubKeyHash...)
 	return PubKeyHash(pubKeyHash)
 }
+
 func (pkh PubKeyHash) IsValid() bool {
 	if len(pkh) != 21 {
 		return false

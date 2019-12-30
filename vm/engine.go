@@ -20,6 +20,7 @@ int   Cgo_StorageSetFunc(void *address, const char *key, const char *value);
 int   Cgo_StorageDelFunc(void *address, const char *key);
 
 bool Cgo_ProducerFunc(void *address, const char *option, const char *nodeAddr );
+bool Cgo_BlacklistFunc(void *address, const char *option, const char *blackAddr );
 
 int   Cgo_TriggerEventFunc(void *address, const char *topic, const char *data);
 int	  Cgo_RecordRewardFunc(void *handler, const char *address, const char *amount);
@@ -124,7 +125,7 @@ func InitializeV8Engine() {
 		(C.FuncStorageDel)(unsafe.Pointer(C.Cgo_StorageDelFunc)))
 
 	C.InitializeProducer((C.FuncProducer)(unsafe.Pointer(C.Cgo_ProducerFunc)))
-
+	C.InitializeBlacklist((C.FuncBlacklist)(unsafe.Pointer(C.Cgo_BlacklistFunc)))
 	C.InitializeTransaction((C.FuncTransactionGet)(unsafe.Pointer(C.Cgo_TransactionGetFunc)))
 	C.InitializeLogger((C.FuncLogger)(unsafe.Pointer(C.Cgo_LoggerFunc)))
 	C.InitializeRewardDistributor((C.FuncRecordReward)(unsafe.Pointer(C.Cgo_RecordRewardFunc)))

@@ -614,6 +614,10 @@ func (bc *Blockchain) updateLIB(currBlkHeight uint64) {
 		Info("LIBBLK INFO")
 }
 
+func (bc *Blockchain) GetLIBPolicy() LIBPolicy{
+	return bc.libPolicy
+}
+
 // Set value of switch tag on RunScheduleEvents
 func SetEnableRunScheduleEvents() {
 	isEnableRunScheduleEvents = true

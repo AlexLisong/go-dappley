@@ -42,6 +42,11 @@ func (kp KeyPair) GenerateAddress() Address {
 	return pubKeyHash.GenerateAddress()
 }
 
+func GenerateAddress(pubkey []byte) Address {
+	pubKeyHash := newUserPubKeyHash(pubkey)
+	return pubKeyHash.GenerateAddress()
+}
+
 func GenerateNodeAddress()(publicHash string, privateKey string){
 	defer func() {
 		if err := recover(); err != nil{

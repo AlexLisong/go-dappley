@@ -96,6 +96,10 @@ func (dpos *DPOS) GetProducers() []string {
 	return dpos.dynasty.GetProducers()
 }
 
+func (dpos *DPOS)GetProducersString() string{
+	return dpos.dynasty.GetProducersString()
+}
+
 //GetProducerAddress returns the local producer's address
 func (dpos *DPOS) GetProducerAddress() string {
 	return dpos.producer.Beneficiary()

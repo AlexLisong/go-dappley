@@ -19,6 +19,7 @@ type Consensus interface {
 type LIBPolicy interface {
 	GetMinConfirmationNum() int
 	GetMaxProducers() int
+	GetProducersString() string
 	IsBypassingLibCheck() bool
 	IsNonRepeatingBlockProducerRequired() bool
 }

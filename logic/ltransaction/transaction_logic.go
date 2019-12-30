@@ -42,6 +42,7 @@ func VerifyInEstimate(utxoIndex *lutxo.UTXOIndex, ctx *transaction.ContractTx) e
 
 // VerifyContractTx ensures signature of transactions is correct or verifies against blockHeight if it's a coinbase transactions
 func verifyContractTx(utxoIndex *lutxo.UTXOIndex, ctx *transaction.ContractTx) error {
+
 	utxos := getPrevUTXOs(&ctx.Transaction, utxoIndex)
 	err := VerifyInEstimate(utxoIndex, ctx)
 	if err != nil {

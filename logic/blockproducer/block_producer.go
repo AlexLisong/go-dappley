@@ -125,12 +125,16 @@ func (bp *BlockProducer) prepareBlock(deadline deadline.Deadline) *lblockchain.B
 
 //collectTransactions pack transactions from transaction pool to a new block
 func (bp *BlockProducer) collectTransactions(utxoIndex *lutxo.UTXOIndex, parentBlk *block.Block, deadline deadline.Deadline) ([]*transaction.Transaction, *scState.ScState) {
-
 	var validTxs []*transaction.Transaction
 	totalSize := 0
 	count := 0
 
 	scStorage := scState.LoadScStateFromDatabase(bp.bm.Getblockchain().GetDb())
+
+	producerStr := bp.bm.Getblockchain().GetLIBPolicy().GetProducersString()
+	producerMap := scStorage.GetStorageByAddress("producer_address_collection_map")
+	producerMap["producer_address_collection_str"] = producerStr
+
 	engine := vm.NewV8Engine()
 	defer engine.DestroyEngine()
 	rewards := make(map[string]string)

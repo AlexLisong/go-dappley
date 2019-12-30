@@ -23,6 +23,7 @@ import (
 	"github.com/dappley/go-dappley/consensus"
 	"github.com/dappley/go-dappley/logic/lblockchain"
 	"net"
+	"sync"
 
 	logger "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -87,7 +88,9 @@ func (s *Server) Start(port uint32) {
 		}
 
 		srv := grpc.NewServer(grpc.UnaryInterceptor(s.AuthInterceptor))
-		rpcpb.RegisterRpcServiceServer(srv, &RpcService{s.bm, s.node, s.dpos.GetDynasty()})
+		rpcService := &RpcService{s.bm, s.node, s.dpos.GetDynasty(),nil,new(sync.RWMutex)}
+		rpcpb.RegisterRpcServiceServer(srv,rpcService)
+		go rpcService.UpdateBlacklist()
 		rpcpb.RegisterAdminServiceServer(srv, &AdminRpcService{s.bm, s.node, s.dpos.GetDynasty()})
 		if s.metricsConfig != nil {
 			rpcpb.RegisterMetricServiceServer(srv, NewMetricsService(s.node, s.bm, s.dpos, s.metricsConfig, port))

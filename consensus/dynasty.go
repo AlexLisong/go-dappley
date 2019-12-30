@@ -265,3 +265,14 @@ func (dynasty *Dynasty) IsSettingProducersAllowed(producers []string, maxProduce
 func (dynasty *Dynasty) SetProducers(producers []string) {
 	dynasty.producers = producers
 }
+
+func (dynasty *Dynasty) GetProducersString() string{
+	dynasty.rwLock.Lock()
+	defer dynasty.rwLock.Unlock()
+
+	str := ""
+	for _,v := range dynasty.producers {
+		str += v + ";"
+	}
+	return str
+}

@@ -89,6 +89,7 @@ extern "C" {
     typedef int (*FuncStorageSet)(void *address, const char *key, const char *value);
     typedef int (*FuncStorageDel)(void *address, const char *key);
     typedef bool (*FuncProducer)(void *address, const char *option , const char *nodeAddr);
+    typedef bool (*FuncBlacklist)(void *address, const char *option, const char *blackAddr );
     typedef int (*FuncContractDel)(void *address);
     typedef int (*FuncTriggerEvent)(void *address, const char *topic, const char *data);
     typedef void (*FuncTransactionGet)(void* address, void* context);
@@ -111,6 +112,7 @@ EXPORT void InitializeBlockchain(FuncVerifyAddress verifyAddress, FuncTransfer t
                                  FuncGetNodeAddress getNodeAddress, FuncDeleteContract deleteContract);
 EXPORT void InitializeRewardDistributor(FuncRecordReward recordReward);
 EXPORT void InitializeProducer(FuncProducer producer);
+EXPORT void InitializeBlacklist(FuncBlacklist blacklist);
 EXPORT void InitializeStorage(FuncStorageGet get, FuncStorageSet set, FuncStorageDel del);
 EXPORT void InitializeEvent(FuncTriggerEvent triggerEvent);
 EXPORT void InitializeContract(FuncContractDel del);
