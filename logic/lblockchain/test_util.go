@@ -31,6 +31,7 @@ func GenerateMockBlockchainWithCoinbaseTxOnly(size int) *Blockchain {
 	libPolicy.On("IsBypassingLibCheck").Return(true)
 	libPolicy.On("IsBypassingLibCheck").Return(true)
 	libPolicy.On("GetMaxProducers").Return(5)
+	 libPolicy.On("GetProducersString").Return("")
 	bc := CreateBlockchain(addr, s, libPolicy, transactionpool.NewTransactionPool(nil, 128000), nil, 100000)
 
 	for i := 0; i < size; i++ {
